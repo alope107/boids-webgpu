@@ -213,7 +213,7 @@ async function main() {
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0,
             pingToPong ? renderBindGroupPing : renderBindGroupPong);
-        renderPass.draw(6); // draw 6 vertices. We will later update this to 3*boidCount
+        renderPass.draw(9); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
         // We've encoded all the commands!
