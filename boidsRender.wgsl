@@ -12,7 +12,7 @@ struct Uniforms {
 @group(0) @binding(1) var<storage, read> nums : array<f32>;
 
 // Dummy function for just making some triangles
-@vertex fn hardcodedTriangles(
+@vertex fn boidVertex(
     @builtin(vertex_index) vertexIndex : u32, // automatically populated!
 ) -> @builtin(position) vec4f {
     
@@ -39,6 +39,6 @@ struct Uniforms {
 
 //pos : position of the pixel (in screen space!)
 // @location(0)... f if I know. I'm tired. I'll look at that later
-@fragment fn gradient(@builtin(position) pos : vec4f) -> @location(0) vec4f {
+@fragment fn boidFragment(@builtin(position) pos : vec4f) -> @location(0) vec4f {
     return vec4f(pos.x/484.0 * sin(uniforms.time), pos.y/716.0, 1.0, 1.0);
 }

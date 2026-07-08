@@ -55,7 +55,7 @@ async function main() {
         layout: 'auto', 
         compute: {
             module: computeModule,
-            entryPoint: updatePosition
+            entryPoint: "updatePosition"
         },
     });
     const renderPipeline = device.createRenderPipeline({
@@ -67,19 +67,21 @@ async function main() {
         },
         fragment: {
             entryPoint: 'boidFragment',
-            module: renderModule
+            module: renderModule,
+            targets: [{ format: presentationFormat }] // interesting that we can have multiple targets...
         }
     });
 
+    // THIS AIN'T USED YET
     // Changing boid struct? All this needs to change!
     const boidStructSize = 24;
     const boidCount = 10;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
     const boidViews = {
-        position: new Float32Array(BoidValues, 0, 2),
-        velocity: new Float32Array(BoidValues, 8, 2),
-        angle: new Float32Array(BoidValues, 16, 1),
+        position: new Float32Array(boidValues, 0, 2),
+        velocity: new Float32Array(boidValues, 8, 2),
+        angle: new Float32Array(boidValues, 16, 1),
     };
 
     // ---------------- START DUMMY ------------------
@@ -90,7 +92,7 @@ async function main() {
     // REMOVE ONCE ACTUALLY IMPLEMENTING BOIDS
 
     const uniformCount = 2;
-    const uniformData = Float32Array(uniformCount);
+    const uniformData = new Float32Array(uniformCount);
 
 
     const uniformBuffer = device.createBuffer({
@@ -227,7 +229,7 @@ async function main() {
         device.queue.submit([commandBuffer]);
 
         // flip the ping pong
-        isPing = !isPing;
+        pingToPong = !pingToPong;
     }
 
     // Resize canvas resolution when screen resized yada yada yada

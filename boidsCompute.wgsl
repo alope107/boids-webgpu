@@ -19,7 +19,7 @@ struct Boid {
 
 // Just modifies some data uselessly
 // Still don't get workgroups
-@compute @workgroup_size(1) fn scale(@builtin(global_invocation_id) id : vec3u) {
+@compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
     // let's us get the invocation id's x.
     // We're doing 1d workgroups, so only the x is relevant
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
