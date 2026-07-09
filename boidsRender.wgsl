@@ -32,8 +32,11 @@ struct Uniforms {
         vec2f(-.1, -.1),
         vec2f(-.1, .1)
     );
+
+    let basePos = boids[boid_idx].position + cornerOffsets[corner];
+    let velOffset = boids[boid_idx].velocity * uniforms.time / 10.;
     
-    return vec4f(boids[boid_idx].position + cornerOffsets[corner], 0., 1.);
+    return vec4f(basePos + velOffset, 0., 1.);
 }
 
 // Dummy function for just making some triangles

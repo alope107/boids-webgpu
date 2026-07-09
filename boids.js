@@ -245,19 +245,28 @@ async function main() {
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
+        // // New rando boids every frame!
+        // for(let i = 0; i < boidCount; i++) {
+        //     boidViews.position.set([randInside(), randInside()], i*floatCount);
+        //     boidViews.velocity.set([randInside(), randInside()], i*floatCount);
+        //     boidViews.angle.set([rand(0, 360)], i*floatCount);
+        // }
+        // device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
+
+        // SKIPPING COMPUTE PASS FOR NOW
         // in this pass we will encode all of the suff we set up for the compute
-        const computePass = encoder.beginComputePass();
-        computePass.setPipeline(computePipeline);
-        // ping pong our bind groups
-        computePass.setBindGroup(0,
-            pingToPong ? computeBindGroupPingToPong : computeBindGroupPongToPing);
-        // Workgroups are still unclear to me. Number of cores? Number of tasks?
-        // I _think_ it's number of tasks?
-        // But it can also be 2 or 3d which I don't understand why that would be needed
-        // I think I understand this the least!
-        computePass.dispatchWorkgroups(ping.length);
-        computePass.end();
+        // const computePass = encoder.beginComputePass();
+        // computePass.setPipeline(computePipeline);
+        // // ping pong our bind groups
+        // computePass.setBindGroup(0,
+        //     pingToPong ? computeBindGroupPingToPong : computeBindGroupPongToPing);
+        // // Workgroups are still unclear to me. Number of cores? Number of tasks?
+        // // I _think_ it's number of tasks?
+        // // But it can also be 2 or 3d which I don't understand why that would be needed
+        // // I think I understand this the least!
+        // computePass.dispatchWorkgroups(ping.length);
+        // computePass.end();
 
         // I think the Canvas has a new texture each frame, so we need to make sure we're drawing
         // to the one for the current frame. Idk tho!
