@@ -8,10 +8,11 @@ struct Boid {
 } // Total 24 bytes
 // Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
 
-// Corresponds to the 2 element uniforms typed array in the JS
+// Corresponds to the uniforms typed array in the JS
 struct Uniforms {
     time : f32,
-    xShift : f32
+    xShift : f32,
+    mousePos : vec2f
 }
 
 // Matches our nice bind groups
@@ -49,7 +50,8 @@ struct Uniforms {
     let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
     
     // uses velocity from struct
-    return vec4f(basePos + velOffset, 0., 1.);
+    // return vec4f(basePos + velOffset, 0., 1.);
+    return vec4f(basePos, 0., 1.);
 
     // let angleVel = vec2f(length(boids[boid_idx].velocity) * cos(boids[boid_idx].angle),
     //                                 length(boids[boid_idx].velocity) * sin(boids[boid_idx].angle) );

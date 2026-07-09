@@ -79,7 +79,7 @@ async function main() {
     // THESE ARE DUMMY BUFFERS FOR VALIDATING SETUP
     // REMOVE ONCE ACTUALLY IMPLEMENTING BOIDS
 
-    const uniformCount = 2;
+    const uniformCount = 4;
     const uniformData = new Float32Array(uniformCount);
 
 
@@ -116,11 +116,10 @@ async function main() {
                GPUBufferUsage.VERTEX 
     });
 
-    // THIS AIN'T USED YET
     // Changing boid struct? All this needs to change!
     const boidStructSize = 24;
     const floatCount = boidStructSize / 4;
-    const boidCount = 1000;
+    const boidCount = 10000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
     console.log(boidValues);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
@@ -171,6 +170,7 @@ async function main() {
         entries: [
             {binding: 0, resource: boidBufferPing},
             {binding: 1, resource: boidBufferPong},
+            { binding: 2, resource: uniformBuffer },
         ]
     });
     const computeBindGroupPongToPing = device.createBindGroup({
@@ -179,6 +179,7 @@ async function main() {
         entries: [
             {binding: 0, resource: boidBufferPong},
             {binding: 1, resource: boidBufferPing},
+            { binding: 2, resource: uniformBuffer },
         ]
     });
 
@@ -285,11 +286,23 @@ async function main() {
     });
     observer.observe(canvas);
 
+    let mouseX = 0;
+    let mouseY = 0;
+
+    window.addEventListener("mousemove", (event) => {
+        mouseX = (2* event.clientX / canvas.width) -1;
+        mouseY = -((2*event.clientY / canvas.height)-1);
+        console.log(mouseX, mouseY);
+    }
+    );
+
     function frame(timestamp) {
         // mess with the uniforms to see them working
         // they get written to the 
         uniformData[0] = timestamp / 1000;
         uniformData[1] += -.001;
+        uniformData[2] = mouseX;
+        uniformData[3] = mouseY;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
         computeAndRender();
