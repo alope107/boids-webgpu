@@ -3,7 +3,7 @@
 struct Boid {
     position: vec2f, // 8 bytes
     velocity: vec2f, // 8 bytes
-    angle: f32       // 4 bytes
+    angle: f32       // 4 bytes // Not needed anymore, will remove later
     // pad              4 bytes
 } // Total 24 bytes
 // Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
@@ -48,17 +48,8 @@ struct Uniforms {
 
 
     let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
-    
-    // uses velocity from struct
-    // return vec4f(basePos + velOffset, 0., 1.);
+
     return vec4f(basePos, 0., 1.);
-
-    // let angleVel = vec2f(length(boids[boid_idx].velocity) * cos(boids[boid_idx].angle),
-    //                                 length(boids[boid_idx].velocity) * sin(boids[boid_idx].angle) );
-
-    // let angleOffset = angleVel * uniforms.time / 10.;
-
-    // return vec4f(basePos + angleOffset, 0., 1.);
 }
 
 // Dummy function for just making some triangles

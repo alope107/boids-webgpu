@@ -5,7 +5,7 @@
 struct Boid {
     position: vec2f, // 8 bytes
     velocity: vec2f, // 8 bytes
-    angle: f32       // 4 bytes
+    angle: f32       // 4 bytes // Not needed anymore, will remove later
     // pad              4 bytes
 } // Total 24 bytes
 // Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
@@ -13,7 +13,7 @@ struct Boid {
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
     time : f32,
-    xShift : f32,
+    xShift : f32, // not needed, can remove
     mousePos : vec2f
 }
 
@@ -34,17 +34,8 @@ struct Uniforms {
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
-    // dummy transform
-    // boidsNew[id.x].angle = boidsOld[id.x].angle + .01;
-    // boidsNew[id.x].velocity.x = boidsOld[id.x].velocity.x + .1;
-    // var av = vec2f();
-    // for(var i = 0; i < 1000; i++) {
-    //     av += boidsOld[i].velocity;
-    // }
-    // av /= 1000;
-    // let newVel = ((av*.09) + (boidsOld[id.x].velocity*1.91)) /2. + (0. *uniforms.mousePos.x);
-    var pull = uniforms.mousePos - boidsOld[id.x].position;
+    var pull = uniforms.mousePos - boidsOld[i].position;
     pull /= length(pull);
-    boidsNew[id.x].velocity = boidsOld[id.x].velocity + pull/10;
-    boidsNew[id.x].position += boidsNew[id.x].velocity/1000;
+    boidsNew[i].velocity = boidsOld[i].velocity + pull/10;
+    boidsNew[i].position += boidsNew[i].velocity/1000;
 }

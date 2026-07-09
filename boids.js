@@ -289,12 +289,13 @@ async function main() {
     let mouseX = 0;
     let mouseY = 0;
 
-    window.addEventListener("mousemove", (event) => {
-        mouseX = (2* event.clientX / canvas.width) -1;
-        mouseY = -((2*event.clientY / canvas.height)-1);
-        console.log(mouseX, mouseY);
-    }
-    );
+    let refreshMouse = (event) => {
+        // Rescale to -1 to +1, the scaling used by the vertex shaders
+        mouseX = (2 * event.clientX / canvas.width) -1;
+        mouseY = -((2* event.clientY / canvas.height)-1);
+    };
+
+    window.addEventListener("mousemove", refreshMouse);
 
     function frame(timestamp) {
         // mess with the uniforms to see them working
