@@ -27,5 +27,5 @@ struct Boid {
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
     // dummy transform
-    boidsNew[id.x].velocity = boidsOld[id.x].velocity * 0.999;
+    boidsNew[id.x].velocity = boidsOld[id.x].velocity * 1.01;
 }
