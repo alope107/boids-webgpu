@@ -119,7 +119,7 @@ async function main() {
     // Changing boid struct? All this needs to change!
     const boidStructSize = 24;
     const floatCount = boidStructSize / 4;
-    const boidCount = 100;
+    const boidCount = 1000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
     console.log(boidValues);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
@@ -137,7 +137,7 @@ async function main() {
 
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
-        boidViews.velocity.set([randInside()*.01, randInside()*.01], i*floatCount);
+        boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
         boidViews.angle.set([rand(0, 2*Math.PI)], i*floatCount);
     }
 

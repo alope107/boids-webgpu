@@ -41,12 +41,12 @@ struct Uniforms {
     let dummy = uniforms.xShift;
 
     // tuneable!
-    let sightRadius = .2;
-    let sepFactor = .0005;
-    let alignFactor = .01;
-    let cohesionFactor = .01;
-    let edgeFactor = .001;
-    let wall = .95;
+    let sightRadius = .05;
+    let sepFactor = .008;
+    let alignFactor = .05;
+    let cohesionFactor = .001;
+    let edgeFactor = .0001;
+    let wall = .9;
 
 
     var sepVec = vec2f(0, 0);
@@ -69,7 +69,7 @@ struct Uniforms {
         if(dist > sightRadius) {continue;}
         neighborCount++;
 
-        sepVec += delta;
+        sepVec += (sightRadius -dist) * delta;
         avgNeighborVel += other.velocity;
 
         center += other.position;
