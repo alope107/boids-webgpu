@@ -41,10 +41,12 @@ struct Uniforms {
     let dummy = uniforms.xShift;
 
     // tuneable!
-    let sightRadius = .1;
-    let sepFactor = .01;
+    let sightRadius = .2;
+    let sepFactor = .0005;
     let alignFactor = .01;
     let cohesionFactor = .01;
+    let edgeFactor = .001;
+    let wall = .95;
 
 
     var sepVec = vec2f(0, 0);
@@ -86,8 +88,21 @@ struct Uniforms {
         newVel += (center - me.position) * cohesionFactor;
     }
 
+    if(me.position.x > wall) {
+        newVel.x -= edgeFactor;
+    }
+    if(me.position.x < -wall) {
+        newVel.x += edgeFactor;
+    }
+    if(me.position.y > wall) {
+        newVel.y -= edgeFactor;
+    }
+    if(me.position.y < -wall) {
+        newVel.y += edgeFactor;
+    }
+
     boidsNew[myIdx].velocity = newVel;
-    boidsNew[myIdx].position = me.position + (newVel/500);
+    boidsNew[myIdx].position = me.position + newVel;
 }
 
 
