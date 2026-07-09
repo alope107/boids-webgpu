@@ -28,12 +28,16 @@ struct Uniforms {
     let corner = vertexIndex % 3;
 
     let cornerOffsets = array<vec2f, 3>(
-        vec2f(0*nums[0], .2),
+        vec2f(0*nums[0], .2), // using nums[0] so as to keep it from disappearing and messing up the bind group
         vec2f(-.1, -.1),
-        vec2f(-.1, .1)
+        vec2f(.1, -.1)
     );
 
-    let basePos = boids[boid_idx].position + cornerOffsets[corner];
+    let rotated = 
+        vec2f(length(cornerOffsets[corner]) * cos(atan2(cornerOffsets[corner].y, cornerOffsets[corner].x) + boids[boid_idx].angle),
+              length(cornerOffsets[corner]) * sin(atan2(cornerOffsets[corner].y, cornerOffsets[corner].x) + boids[boid_idx].angle));
+
+    let basePos = boids[boid_idx].position + rotated;
     let velOffset = boids[boid_idx].velocity * uniforms.time / 10.;
     
     return vec4f(basePos + velOffset, 0., 1.);

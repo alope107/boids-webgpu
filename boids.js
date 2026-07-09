@@ -139,7 +139,7 @@ async function main() {
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside(), randInside()], i*floatCount);
-        boidViews.angle.set([rand(0, 360)], i*floatCount);
+        boidViews.angle.set([rand(0, 2*Math.PI)], i*floatCount);
     }
 
     // const jsBoids = [
