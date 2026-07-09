@@ -33,7 +33,10 @@ struct Uniforms {
     );
 
     let originalAngle = atan2(cornerOffsets[corner].y, cornerOffsets[corner].x);
-    let newAngle = originalAngle + boids[boid_idx].angle;
+    
+    // based off angle var
+    //let newAngle = originalAngle + boids[boid_idx].angle;
+    let newAngle = originalAngle + atan2(boids[boid_idx].velocity.y, boids[boid_idx].velocity.x);
 
     let rotated = 
         vec2f(length(cornerOffsets[corner]) * cos(newAngle),
@@ -43,17 +46,17 @@ struct Uniforms {
     let velOffset = boids[boid_idx].velocity * uniforms.time / 10.;
 
 
-    // let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
+    let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
     
     // uses velocity from struct
-    // return vec4f(basePos + velOffset, 0., 1.);
+    return vec4f(basePos + velOffset, 0., 1.);
 
-    let angleVel = vec2f(length(boids[boid_idx].velocity) * cos(boids[boid_idx].angle),
-                                    length(boids[boid_idx].velocity) * sin(boids[boid_idx].angle) );
+    // let angleVel = vec2f(length(boids[boid_idx].velocity) * cos(boids[boid_idx].angle),
+    //                                 length(boids[boid_idx].velocity) * sin(boids[boid_idx].angle) );
 
-    let angleOffset = angleVel * uniforms.time / 10.;
+    // let angleOffset = angleVel * uniforms.time / 10.;
 
-    return vec4f(basePos + angleOffset, 0., 1.);
+    // return vec4f(basePos + angleOffset, 0., 1.);
 }
 
 // Dummy function for just making some triangles

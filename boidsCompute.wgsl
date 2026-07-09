@@ -27,5 +27,13 @@ struct Boid {
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
     // dummy transform
-    boidsNew[id.x].velocity = boidsOld[id.x].velocity * 1.01;
+    // boidsNew[id.x].angle = boidsOld[id.x].angle + .01;
+    // boidsNew[id.x].velocity.x = boidsOld[id.x].velocity.x + .1;
+    var av = vec2f();
+    for(var i = 0; i < 1000; i++) {
+        av += boidsOld[i].velocity;
+    }
+    av /= 1000;
+    let newVel = ((av*.09) + (boidsOld[id.x].velocity*1.91)) /2.;
+    boidsNew[id.x].velocity = newVel;//boidsOld[id.x].velocity;
 }
