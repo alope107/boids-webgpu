@@ -120,7 +120,7 @@ async function main() {
     // Changing boid struct? All this needs to change!
     const boidStructSize = 24;
     const floatCount = boidStructSize / 4;
-    const boidCount = 100;
+    const boidCount = 10000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
     console.log(boidValues);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html

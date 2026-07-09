@@ -28,9 +28,9 @@ struct Uniforms {
     let corner = vertexIndex % 3;
 
     let cornerOffsets = array<vec2f, 3>(
-        vec2f(.3, 0),
-        vec2f(0, -.1),
-        vec2f(0*nums[0], .1), // using nums[0] so as to keep it from disappearing and messing up the bind group
+        vec2f(.03, 0),
+        vec2f(0, -.01),
+        vec2f(0*nums[0], .01), // using nums[0] so as to keep it from disappearing and messing up the bind group
     );
 
     let originalAngle = atan2(cornerOffsets[corner].y, cornerOffsets[corner].x);
