@@ -1,0 +1,3 @@
+1. Boid array renderable. Filled in JS with junk data
+2. Boids movable in compute shader. Just move linearly in some direction
+3. Boids actually boiding? 

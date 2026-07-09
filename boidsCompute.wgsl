@@ -1,6 +1,7 @@
 // Ideating boids struct:
 
 // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+// CHANGE IT IN THE OTHER SHADER TOO
 struct Boid {
     position: vec2f, // 8 bytes
     velocity: vec2f, // 8 bytes
@@ -15,6 +16,7 @@ struct Boid {
 // The shader doesn't need to know about the pinging and ponging!
 @group(0) @binding(0) var<storage, read_write> oldData : array<f32>;
 @group(0) @binding(1) var<storage, read_write> newData : array<f32>;
+@group(0) @binding(2) var<storage, read_write> boids : array<Boid>;
 
 
 // Just modifies some data uselessly
@@ -26,5 +28,5 @@ struct Boid {
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
     // dummy transform
-    newData[i] = oldData[i] + 0.001;
+    newData[i] = oldData[i] + 0.001 + boids[0].position.x;
 }

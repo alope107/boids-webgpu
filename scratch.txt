@@ -1,0 +1,6 @@
+boids.html:1 In entries[2], binding index 2 not present in the bind group layout.
+Expected layout: [
+    { binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Storage, minBindingSize: 4, hasDynamicOffset: 0} },
+    { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Storage, minBindingSize: 4, hasDynamicOffset: 0} }]
+ - While validating [BindGroupDescriptor ""compute bind group for reading from ping and writing to pong""] against [BindGroupLayout (unlabeled)]
+ - While calling [Device].CreateBindGroup([BindGroupDescriptor ""compute bind group for reading from ping and writing to pong""]).

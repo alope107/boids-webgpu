@@ -1,5 +1,12 @@
-// TODO: boidVertex
-// TODO: boidFragment
+// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+// CHANGE IT IN THE OTHER SHADER TOO
+struct Boid {
+    position: vec2f, // 8 bytes
+    velocity: vec2f, // 8 bytes
+    angle: f32       // 4 bytes
+    // pad              4 bytes
+} // Total 24 bytes
+// Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
 
 // Corresponds to the 2 element uniforms typed array in the JS
 struct Uniforms {
@@ -10,9 +17,27 @@ struct Uniforms {
 // Matches our nice bind groups
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read> nums : array<f32>;
+@group(0) @binding(2) var<storage, read> boids : array<Boid>;
+
+@vertex fn boidVertex(
+    @builtin(vertex_index) vertexIndex : u32
+) -> @builtin(position) vec4f {
+    let boid_idx = vertexIndex / 3; // Each boid has 3 vertices
+
+    // TODO: Maybe make these offsets uniform?
+    let corner = vertexIndex % 3;
+
+    let cornerOffsets = array<vec2f, 3>(
+        vec2f(0*nums[0], .2),
+        vec2f(-.1, -.1),
+        vec2f(-.1, .1)
+    );
+    
+    return vec4f(boids[boid_idx].position + cornerOffsets[corner], 0., 1.);
+}
 
 // Dummy function for just making some triangles
-@vertex fn boidVertex(
+@vertex fn hardcodedTriangles(
     @builtin(vertex_index) vertexIndex : u32, // automatically populated!
 ) -> @builtin(position) vec4f {
     

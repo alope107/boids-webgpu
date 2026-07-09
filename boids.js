@@ -72,18 +72,6 @@ async function main() {
         }
     });
 
-    // THIS AIN'T USED YET
-    // Changing boid struct? All this needs to change!
-    const boidStructSize = 24;
-    const boidCount = 10;
-    const boidValues = new ArrayBuffer(boidCount * boidStructSize);
-    // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
-    const boidViews = {
-        position: new Float32Array(boidValues, 0, 2),
-        velocity: new Float32Array(boidValues, 8, 2),
-        angle: new Float32Array(boidValues, 16, 1),
-    };
-
     // ---------------- START DUMMY ------------------
     // TODO set initial boid positions
     // TODO use boids instead of dummy stuff
@@ -128,6 +116,66 @@ async function main() {
                GPUBufferUsage.VERTEX 
     });
 
+    // THIS AIN'T USED YET
+    // Changing boid struct? All this needs to change!
+    const boidStructSize = 24;
+    const floatCount = boidStructSize / 4;
+    const boidCount = 100;
+    const boidValues = new ArrayBuffer(boidCount * boidStructSize);
+    console.log(boidValues);
+    // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
+    const boidViews = {
+        position: new Float32Array(boidValues, 0),
+        velocity: new Float32Array(boidValues, 8),
+        angle: new Float32Array(boidValues, 16),
+    };
+    console.log(boidViews);
+
+    let jsBoids = [];
+
+    let rand = (min, max) => Math.random() * (max-min) + min;
+    let randInside = () => rand(-1, 1);
+
+    for(let i = 0; i < boidCount; i++) {
+        boidViews.position.set([randInside(), randInside()], i*floatCount);
+        boidViews.velocity.set([randInside(), randInside()], i*floatCount);
+        boidViews.angle.set([rand(0, 360)], i*floatCount);
+    }
+
+    // const jsBoids = [
+    //     [
+    //         [-.1, -.2],
+    //         [-.3, -.4],
+    //         [90]
+    //     ],
+    //     [
+    //         [.3, .2],
+    //         [-.3, .4],
+    //         [180]
+    //     ],
+    //     [
+    //         [-.7, .2],
+    //         [.3, -.8],
+    //         [270]
+    //     ]
+    // ]
+
+    // boidViews.position.set([-.1, -.2], 0 * floatCount);
+    // boidViews.velocity.set([-.3, -.4], 0 * floatCount);
+    // boidViews.angle.set([90], 0 * floatCount);
+
+    // boidViews.position.set([-.5, -.6], 1 * floatCount);
+    // boidViews.velocity.set([-.7, -.8], 1 * floatCount);
+    // boidViews.angle.set([180], 1 * floatCount);
+
+    const boidBuffer = device.createBuffer({
+        label: "boid struct buffer",
+        size: boidValues.byteLength,
+        usage: GPUBufferUsage.STORAGE |
+               GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.VERTEX
+    });
+
     // Bind groups for the compute shader
     // Bind groups will define the mappings of how the shaders will access the data
     // Here we'll make ping->pong and pong->ping bind groups
@@ -140,7 +188,8 @@ async function main() {
         layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
             {binding: 0, resource: pingBuffer},
-            {binding: 1, resource: pongBuffer}
+            {binding: 1, resource: pongBuffer},
+            { binding: 2, resource: boidBuffer }
         ]
     });
     const computeBindGroupPongToPing = device.createBindGroup({
@@ -148,7 +197,8 @@ async function main() {
         layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
             {binding: 0, resource: pongBuffer},
-            {binding: 1, resource: pingBuffer}
+            {binding: 1, resource: pingBuffer},
+            { binding: 2, resource: boidBuffer }
         ]
     });
 
@@ -158,7 +208,8 @@ async function main() {
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: pingBuffer}
+            { binding: 1, resource: pingBuffer },
+            { binding: 2, resource: boidBuffer }
         ]
     });
     const renderBindGroupPong = device.createBindGroup({
@@ -166,7 +217,8 @@ async function main() {
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: pongBuffer}
+            { binding: 1, resource: pongBuffer},
+            { binding: 2, resource: boidBuffer }
         ]
     });
 
@@ -185,6 +237,7 @@ async function main() {
     // Set up ping and pong buffers with the initial data from the CPU
     device.queue.writeBuffer(pingBuffer, 0, ping);
     device.queue.writeBuffer(pongBuffer, 0, pong);
+    device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
     let pingToPong = true;
     // to be called every frame
@@ -215,7 +268,7 @@ async function main() {
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0,
             pingToPong ? renderBindGroupPing : renderBindGroupPong);
-        renderPass.draw(9); // draw 9 vertices. We will later update this to 3*boidCount
+        renderPass.draw(3*boidCount); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
         // We've encoded all the commands!
