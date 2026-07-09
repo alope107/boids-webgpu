@@ -14,9 +14,8 @@ struct Boid {
 // TODO: have these be arrays of boids
 // These arrays are referenced in VRAM according the bindGroups set up in the JS
 // The shader doesn't need to know about the pinging and ponging!
-@group(0) @binding(0) var<storage, read_write> oldData : array<f32>;
-@group(0) @binding(1) var<storage, read_write> newData : array<f32>;
-@group(0) @binding(2) var<storage, read_write> boids : array<Boid>;
+@group(0) @binding(0) var<storage, read_write> boidsOld : array<Boid>;
+@group(0) @binding(1) var<storage, read_write> boidsNew : array<Boid>;
 
 
 // Just modifies some data uselessly
@@ -28,5 +27,5 @@ struct Boid {
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
     // dummy transform
-    newData[i] = oldData[i] + 0.001 + boids[0].position.x;
+    boidsNew[id.x].velocity = boidsOld[id.x].velocity * 0.999;
 }

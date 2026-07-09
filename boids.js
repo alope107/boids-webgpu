@@ -142,34 +142,16 @@ async function main() {
         boidViews.angle.set([rand(0, 2*Math.PI)], i*floatCount);
     }
 
-    // const jsBoids = [
-    //     [
-    //         [-.1, -.2],
-    //         [-.3, -.4],
-    //         [90]
-    //     ],
-    //     [
-    //         [.3, .2],
-    //         [-.3, .4],
-    //         [180]
-    //     ],
-    //     [
-    //         [-.7, .2],
-    //         [.3, -.8],
-    //         [270]
-    //     ]
-    // ]
+    const boidBufferPing = device.createBuffer({
+        label: "boid struct buffer ping",
+        size: boidValues.byteLength,
+        usage: GPUBufferUsage.STORAGE |
+               GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.VERTEX
+    });
 
-    // boidViews.position.set([-.1, -.2], 0 * floatCount);
-    // boidViews.velocity.set([-.3, -.4], 0 * floatCount);
-    // boidViews.angle.set([90], 0 * floatCount);
-
-    // boidViews.position.set([-.5, -.6], 1 * floatCount);
-    // boidViews.velocity.set([-.7, -.8], 1 * floatCount);
-    // boidViews.angle.set([180], 1 * floatCount);
-
-    const boidBuffer = device.createBuffer({
-        label: "boid struct buffer",
+    const boidBufferPong = device.createBuffer({
+        label: "boid struct buffer pong",
         size: boidValues.byteLength,
         usage: GPUBufferUsage.STORAGE |
                GPUBufferUsage.COPY_DST |
@@ -187,18 +169,16 @@ async function main() {
         label: "compute bind group for reading from ping and writing to pong",
         layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
-            {binding: 0, resource: pingBuffer},
-            {binding: 1, resource: pongBuffer},
-            { binding: 2, resource: boidBuffer }
+            {binding: 0, resource: boidBufferPing},
+            {binding: 1, resource: boidBufferPong},
         ]
     });
     const computeBindGroupPongToPing = device.createBindGroup({
         label: "compute bind group for reading from pong and writing to ping",
         layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
-            {binding: 0, resource: pongBuffer},
-            {binding: 1, resource: pingBuffer},
-            { binding: 2, resource: boidBuffer }
+            {binding: 0, resource: boidBufferPong},
+            {binding: 1, resource: boidBufferPing},
         ]
     });
 
@@ -208,8 +188,7 @@ async function main() {
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: pingBuffer },
-            { binding: 2, resource: boidBuffer }
+            { binding: 1, resource: boidBufferPing },
         ]
     });
     const renderBindGroupPong = device.createBindGroup({
@@ -217,8 +196,7 @@ async function main() {
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: pongBuffer},
-            { binding: 2, resource: boidBuffer }
+            { binding: 1, resource: boidBufferPong }
         ]
     });
 
@@ -235,9 +213,8 @@ async function main() {
     }
 
     // Set up ping and pong buffers with the initial data from the CPU
-    device.queue.writeBuffer(pingBuffer, 0, ping);
-    device.queue.writeBuffer(pongBuffer, 0, pong);
-    device.queue.writeBuffer(boidBuffer, 0, boidValues);
+    device.queue.writeBuffer(boidBufferPing, 0, boidValues);
+    device.queue.writeBuffer(boidBufferPong, 0, boidValues);
 
     let pingToPong = true;
     // to be called every frame
@@ -256,17 +233,18 @@ async function main() {
 
         // SKIPPING COMPUTE PASS FOR NOW
         // in this pass we will encode all of the suff we set up for the compute
-        // const computePass = encoder.beginComputePass();
-        // computePass.setPipeline(computePipeline);
+        const computePass = encoder.beginComputePass();
+        computePass.setPipeline(computePipeline);
         // // ping pong our bind groups
-        // computePass.setBindGroup(0,
-        //     pingToPong ? computeBindGroupPingToPong : computeBindGroupPongToPing);
-        // // Workgroups are still unclear to me. Number of cores? Number of tasks?
-        // // I _think_ it's number of tasks?
-        // // But it can also be 2 or 3d which I don't understand why that would be needed
-        // // I think I understand this the least!
-        // computePass.dispatchWorkgroups(ping.length);
-        // computePass.end();
+        computePass.setBindGroup(0,
+            pingToPong ? computeBindGroupPingToPong : computeBindGroupPongToPing);
+        // Workgroups are still unclear to me. Number of cores? Number of tasks?
+        // I _think_ it's number of tasks?
+        // But it can also be 2 or 3d which I don't understand why that would be needed
+        // I think I understand this the least!
+        //computePass.dispatchWorkgroups(ping.length);
+        computePass.dispatchWorkgroups(boidCount);
+        computePass.end();
 
         // I think the Canvas has a new texture each frame, so we need to make sure we're drawing
         // to the one for the current frame. Idk tho!

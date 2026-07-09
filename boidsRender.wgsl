@@ -16,8 +16,7 @@ struct Uniforms {
 
 // Matches our nice bind groups
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@group(0) @binding(1) var<storage, read> nums : array<f32>;
-@group(0) @binding(2) var<storage, read> boids : array<Boid>;
+@group(0) @binding(1) var<storage, read> boids : array<Boid>;
 
 @vertex fn boidVertex(
     @builtin(vertex_index) vertexIndex : u32
@@ -30,7 +29,7 @@ struct Uniforms {
     let cornerOffsets = array<vec2f, 3>(
         vec2f(.03, 0),
         vec2f(0, -.01),
-        vec2f(0*nums[0], .01), // using nums[0] so as to keep it from disappearing and messing up the bind group
+        vec2f(0, .01), // using nums[0] so as to keep it from disappearing and messing up the bind group
     );
 
     let originalAngle = atan2(cornerOffsets[corner].y, cornerOffsets[corner].x);
@@ -58,29 +57,29 @@ struct Uniforms {
 }
 
 // Dummy function for just making some triangles
-@vertex fn hardcodedTriangles(
-    @builtin(vertex_index) vertexIndex : u32, // automatically populated!
-) -> @builtin(position) vec4f {
+// @vertex fn hardcodedTriangles(
+//     @builtin(vertex_index) vertexIndex : u32, // automatically populated!
+// ) -> @builtin(position) vec4f {
     
-    // Just some dummy triangles
-    let pos = array(
-        vec2f(0.0, -1.0 * sin(uniforms.time)),
-        vec2f(-0.5* sin(uniforms.time), -0.5),
-        vec2f(0.5, -0.5),
+//     // Just some dummy triangles
+//     let pos = array(
+//         vec2f(0.0, -1.0 * sin(uniforms.time)),
+//         vec2f(-0.5* sin(uniforms.time), -0.5),
+//         vec2f(0.5, -0.5),
 
-        vec2f(1.0 + uniforms.xShift, 1.0),
-        vec2f(.8 + uniforms.xShift, .8),
-        vec2f(.6 + uniforms.xShift, .8),
+//         vec2f(1.0 + uniforms.xShift, 1.0),
+//         vec2f(.8 + uniforms.xShift, .8),
+//         vec2f(.6 + uniforms.xShift, .8),
 
-        vec2f(nums[0], 1.0),
-        vec2f(nums[1], .8),
-        vec2f(nums[2], .8),
-    );
+//         vec2f(nums[0], 1.0),
+//         vec2f(nums[1], .8),
+//         vec2f(nums[2], .8),
+//     );
     
-    // Gets the x/y, z is 0, w is 1
-    // w is 1/w from clip-space. A mystery for another day!
-    return vec4f(pos[vertexIndex], 0.0, 1.0);
-}
+//     // Gets the x/y, z is 0, w is 1
+//     // w is 1/w from clip-space. A mystery for another day!
+//     return vec4f(pos[vertexIndex], 0.0, 1.0);
+// }
 
 
 //pos : position of the pixel (in screen space!)
