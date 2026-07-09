@@ -33,6 +33,70 @@ struct Uniforms {
     // We're doing 1d workgroups, so only the x is relevant
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
     // So maybe we'll end up having 1 per boid too? Idk
+    let myIdx = id.x;
+    let me = boidsOld[myIdx];
+    let boidCount = arrayLength(&boidsOld);
+
+    // Adding a dummy for now so uniforms doesn't get tossed
+    let dummy = uniforms.xShift;
+
+    // tuneable!
+    let sightRadius = .1;
+    let sepFactor = .01;
+    let alignFactor = .01;
+    let cohesionFactor = .01;
+
+
+    var sepVec = vec2f(0, 0);
+    var neighborCount = 0u;
+
+    var avgNeighborVel = vec2f(0, 0);
+
+    var center = vec2f(0, 0);
+
+    // TODO: bucketing so this isn't n^2
+    for (var i = 0u; i< boidCount; i++) {
+        if(myIdx == i) {continue;} // don't include self in averages
+        let other = boidsOld[i];
+
+        let delta = me.position - other.position;
+
+        // Check if within sight radius
+        // Could prob be done faster comparing squared distances
+        let dist = length(delta);
+        if(dist > sightRadius) {continue;}
+        neighborCount++;
+
+        sepVec += delta;
+        avgNeighborVel += other.velocity;
+
+        center += other.position;
+    }
+
+    var newVel = me.velocity;
+    
+
+    if(neighborCount > 0) {
+        newVel += sepVec * sepFactor;
+
+        avgNeighborVel /= f32(neighborCount);
+        newVel += (avgNeighborVel-me.velocity) * alignFactor;
+
+        center /= f32(neighborCount);
+        newVel += (center - me.position) * cohesionFactor;
+    }
+
+    boidsNew[myIdx].velocity = newVel;
+    boidsNew[myIdx].position = me.position + (newVel/500);
+}
+
+
+// old mouse attract shader, not currently used
+@compute @workgroup_size(1) fn updatePositionMouse(@builtin(global_invocation_id) id : vec3u) {
+    // let's us get the invocation id's x.
+    // We're doing 1d workgroups, so only the x is relevant
+    // I THINK this means that we're going to have each... worker? working on a separate element of the array
+    // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
     var pull = uniforms.mousePos - boidsOld[i].position;
     pull /= length(pull);
