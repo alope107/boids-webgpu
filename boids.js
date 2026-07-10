@@ -95,10 +95,8 @@ async function main() {
 // struct Boid {
 //     position: vec2f, // 8 bytes
 //     velocity: vec2f, // 8 bytes
-//     color:    vec3f, // 12 bytes
-//     // pad           // 4 bytes
+//     color:    vec4f, // 16 bytes
 // } // Total 32 bytes
-// // Gets extra 4 bytes of padding so the next vec3f can properly be aligned
     // Changing boid struct? All this needs to change!
     const boidStructSize = 32;
     const floatCount = boidStructSize / 4;
@@ -118,7 +116,7 @@ async function main() {
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
-        boidViews.color.set([rand(), rand(), rand()], i*floatCount);
+        boidViews.color.set([rand(), rand(), rand(), 1.0], i*floatCount);
     }
 
     const boidBuffer = device.createBuffer({

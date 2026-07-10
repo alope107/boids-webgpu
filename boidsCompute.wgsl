@@ -3,10 +3,8 @@
 struct Boid {
     position: vec2f, // 8 bytes
     velocity: vec2f, // 8 bytes
-    color:    vec3f, // 12 bytes
-    // pad           // 4 bytes
+    color:    vec4f, // 16 bytes
 } // Total 32 bytes
-// Gets extra 4 bytes of padding so the next vec3f can properly be aligned
 
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
