@@ -1,4 +1,15 @@
 async function main() {
+    // Tunables!
+    const sightRadius = .04;
+    const wall = 1.05;
+
+    // Ensure that buckets are smaller than the sightRadius
+    // (field spans from -wall to wall (length of 2*wall))
+    const fieldSideLength = 2 * wall;
+    // TODO set back after bucket count validated
+    const bucketRows = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
+    const bucketCols = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
+
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter();
     const device = await adapter?.requestDevice();
@@ -45,8 +56,25 @@ async function main() {
 
     // Our pipelines define how our bind groups are laid out
     // and which shader functions should be called
-    const computePipeline = device.createComputePipeline({
-        label: 'compute boids pipeline',
+    const computeBucketCountsPipeline = device.createComputePipeline({
+        label: 'compute bucketCounts pipeline',
+        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
+        // Apparently this will cause a performance hit when we try to share a bind group?
+        // We'll leave it as-is for now
+        layout: 'auto', 
+        compute: {
+            module: computeModule,
+            entryPoint: "countBuckets",
+            constants: {
+                sightRadius: sightRadius,
+                wall: wall,
+                bucketRows: bucketRows,
+                bucketCols: bucketCols
+            }
+        },
+    });
+    const computePhysicsPipeline = device.createComputePipeline({
+        label: 'compute physics pipeline',
         // Right now 'auto' is letting WebGPU infer the layout of our bind groups
         // Apparently this will cause a performance hit when we try to share a bind group?
         // We'll leave it as-is for now
@@ -55,7 +83,10 @@ async function main() {
             module: computeModule,
             entryPoint: "updatePosition",
             constants: {
-                sepFactor: .01,
+                sightRadius: sightRadius,
+                wall: wall,
+                bucketRows: bucketRows,
+                bucketCols: bucketCols
             }
             //entryPoint: "updatePositionMouse" // swap to me if u want mouse attract instead of actual boids
         },
@@ -130,14 +161,46 @@ async function main() {
                GPUBufferUsage.VERTEX
     });
 
+    
 
-    // Bind group for the compute shader
-    const computeBindGroup = device.createBindGroup({
-        label: "compute bind group for reading from ping and writing to pong",
-        layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+    const bucketStructSize = 8;
+    const u32Count = bucketStructSize / 4;
+    const bucketCount = bucketRows * bucketCols;
+    let bucketValues = new Uint32Array(bucketCount*u32Count);
+
+    const bucketBuffer = device.createBuffer({
+        label: "bucket buffer",
+        size: bucketValues.byteLength,
+        usage: GPUBufferUsage.STORAGE |
+               GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.COPY_SRC // Copy src can be removed later, here for debuggling purposes
+    });
+
+    const debugBucketCountBuffer = device.createBuffer({
+        label: "debug bucket count buffer",
+        size: bucketValues.byteLength,
+        usage: 
+               GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.MAP_READ 
+    });
+
+    const bucketCountBindGroup = device.createBindGroup({
+        label: "compute bind group for physics",
+        layout: computeBucketCountsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
+            { binding: 2, resource: bucketBuffer }
+        ]
+    });
+
+    const physicsBindGroup = device.createBindGroup({
+        label: "compute bind group for physics",
+        layout: computePhysicsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        entries: [
+            { binding: 0, resource: uniformBuffer },
+            { binding: 1, resource: boidBuffer },
+            { binding: 2, resource: bucketBuffer }
         ]
     });
 
@@ -164,29 +227,37 @@ async function main() {
         ]
     }
 
-    // Set up ping and pong buffers with the initial data from the CPU
+    // Set up boids bufer with initial random data
     device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
     // to be called every frame
-    function computeAndRender() {
+    async function computeAndRender() {
+        // Clear out buckets each iteration
+        // TODO: Explore maybe doing this in a shader instead?... it's small though
+        bucketValues = new Uint32Array(bucketCount*u32Count);
+        device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
+
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
+        const bucketCountPass = encoder.beginComputePass();
+        bucketCountPass.setPipeline(computeBucketCountsPipeline);
+        bucketCountPass.setBindGroup(0, bucketCountBindGroup);
+        bucketCountPass.dispatchWorkgroups(boidCount);
+        bucketCountPass.end();
+
+        ////////////////////////////
+
         // in this pass we will encode all of the suff we set up for the compute
-        const computePass = encoder.beginComputePass();
-        computePass.setPipeline(computePipeline);
-        // // ping pong our bind groups
-        computePass.setBindGroup(0, computeBindGroup);
-        // Workgroups are still unclear to me. Number of cores? Number of tasks?
-        // I _think_ it's number of tasks?
-        // But it can also be 2 or 3d which I don't understand why that would be needed
-        // I think I understand this the least!
+        const computePhysicsPass = encoder.beginComputePass();
+        computePhysicsPass.setPipeline(computePhysicsPipeline);
+        computePhysicsPass.setBindGroup(0, physicsBindGroup);
 
         // if this changes, it needs to be changed in the shader as well
         let workgroupSize = [8, 8, 1];
 
-        computePass.dispatchWorkgroups(Math.ceil(boidCount/(workgroupSize[0]*workgroupSize[1]*workgroupSize[2])));
-        computePass.end();
+        computePhysicsPass.dispatchWorkgroups(Math.ceil(boidCount/(workgroupSize[0]*workgroupSize[1]*workgroupSize[2])));
+        computePhysicsPass.end();
 
         // I think the Canvas has a new texture each frame, so we need to make sure we're drawing
         // to the one for the current frame. Idk tho!
@@ -199,15 +270,18 @@ async function main() {
         renderPass.draw(3, boidCount); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
-        // We've encoded all the commands!
-        // Is this a buffer in the same way to the other Buffers in that it's data
-        // that will be allocated on VRAM?
-        // Does that mean that a shader could modify this buffer and make self modifying code???
-        // Or is it just a buffer in the more pedestrian sense?
+
+        encoder.copyBufferToBuffer(bucketBuffer, 0, debugBucketCountBuffer, 0, bucketBuffer.size);
+
         const commandBuffer = encoder.finish();
 
         // Actually send the whole shebang to the jeep y you
         device.queue.submit([commandBuffer]);
+
+        // await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
+        // const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
+        // console.log(result);
+        // debugBucketCountBuffer.unmap();
     }
 
     // Resize canvas resolution when screen resized yada yada yada

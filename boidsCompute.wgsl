@@ -16,12 +16,12 @@ struct Uniforms {
 } // total: 16 bytes
 
 // tuneable! (maybe set as constants?)
-override sightRadius = .04;
+override sightRadius : f32; // set exclusively in JS because needed for bucket calc
 override sepFactor = .01;
 override alignFactor = .5;
 override cohesionFactor = .001;
 override edgeFactor = .0001;
-override wall = 1.05; // how far off the edge of the screen the boid can get before wrapping
+override wall : f32; // how far off the edge of the screen the boid can get before wrapping
 override minSpeed = .010;
 override speedUp = 1.01; // if below minSpeed, accelerate by speedUP
 override pointerRadius = .2;
@@ -34,14 +34,15 @@ override pointerPush = .002;
 
 // BUCKET PLANNING
 // TODO: Make sure the bucketRows and cols properly holds the sight distance.
-// override bucketRows = 32;
-// override bucketCols = 32;
+override bucketRows : u32;
+override bucketCols : u32;
 
-// struct Bucket {
-//     count : u32, // How many boids are in this bucket?
-//     offset : u32 // How many boids are before this bucket?
-// }
-// @group(0) @binding(2) var<storage, read_write> buckets : array<u32>;
+struct Bucket {
+    count : atomic<u32>, // How many boids are in this bucket?
+    offset : u32 // How many boids are before this bucket?
+} // 8 bytes
+@group(0) @binding(2) var<storage, read_write> buckets : array<Bucket>;
+// @group(0) @binding(3) var<storage, read_write> dorp : array<u32>;
 // @group(0) @binding(3) var<storage, read_write> bucketedIds : array<u32>;
 
 
@@ -52,6 +53,23 @@ override pointerPush = .002;
 
 // Step 2: CountBuckets
 
+// TODO: Right workgroup size?
+@compute @workgroup_size(1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
+    _ = uniforms; // dummy
+    if(id >= arrayLength(&boids)) { return; }
+    let bucketId = bucketIdx(boids[id].position);
+    atomicAdd(&(buckets[bucketId].count), 1);
+}
+
+fn bucketIdx(position : vec2f) -> u32 {
+    // buckets extend from -wall to +wall
+    let col = u32(f32(bucketCols) * ((position.x / (2.*wall)) + .5));
+    let row = u32(f32(bucketRows) * ((position.y / (2.*wall)) + .5));
+
+    // linear index
+    return row*bucketCols + col;
+}
+
 
 
 // Splitting the workgroups made a HUGE difference on laptop
@@ -59,6 +77,8 @@ override pointerPush = .002;
 // interes...
 // if workgroup_size changes, it needs to be changed in the shader as well
 @compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
+    _ = buckets[0].offset; // Currently a dummy so the bind groups turn out OK
+
     let myIdx = id;
     // If we have more threads than boids, the extra threads don't need to do anything
     if(myIdx >= arrayLength(&boids)) { return; }
@@ -113,6 +133,8 @@ override pointerPush = .002;
     }
 
     if (length(newVel) < minSpeed) {newVel *= speedUp;}
+
+    // TODO: re-enable physics!
     boids[myIdx].velocity = newVel;
     boids[myIdx].position = me.position + newVel;
 
