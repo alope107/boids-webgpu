@@ -7,11 +7,13 @@
 3.5. Does removing ping-pong impact anything?✅ 
     answer: still runs just fine! Introduces some non-determinism, but is imperceptible
 
-3.52. Instance numbers!
+3.52. Instance numbers! ✅ 
 
 
-3.55. Colors. Figure out how fragment shader knows which boid it is. Color appropriately!
+3.55. Colors. Figure out how fragment shader knows which boid it is. Color appropriately! ✅ 
     a. Interstage variables!
+
+3.57 GitHub pages!
 
 3.6. Possible fun:
     a. Obstacles?
