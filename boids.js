@@ -219,17 +219,17 @@ async function main() {
     let pointerY = 0;
     let pointerHeld = 0;
 
-    window.addEventListener("pointermove", () => {
+    canvas.addEventListener("pointermove", () => {
         // Rescale to -1 to +1, the scaling used by the vertex shaders
         pointerX = (2 * event.clientX / canvas.width) -1;
         pointerY = -((2* event.clientY / canvas.height)-1);
     });
 
-    window.addEventListener('pointerdown', () => { pointerHeld = 1; });
+    canvas.addEventListener('pointerdown', () => { pointerHeld = 1; });
 
-    window.addEventListener('pointerup', () => { pointerHeld = 0; });
-    window.addEventListener('pointeleave', () => { pointerHeld = 0; });
-    window.addEventListener('pointercancel', () => { pointerHeld = 0; });
+    canvas.addEventListener('pointerup', () => { pointerHeld = 0; });
+    canvas.addEventListener('pointeleave', () => { pointerHeld = 0; });
+    canvas.addEventListener('pointercancel', () => { pointerHeld = 0; });
 
     function frame(timestamp) {
         // mess with the uniforms to see them working
