@@ -91,19 +91,6 @@ struct Uniforms {
         newVel += (center - me.position) * cohesionFactor;
     }
 
-    // if(me.position.x > wall) {
-    //     newVel.x -= edgeFactor;
-    // }
-    // if(me.position.x < -wall) {
-    //     newVel.x += edgeFactor;
-    // }
-    // if(me.position.y > wall) {
-    //     newVel.y -= edgeFactor;
-    // }
-    // if(me.position.y < -wall) {
-    //     newVel.y += edgeFactor;
-    // }
-
 
 
     if (length(newVel) < minSpeed) {newVel *= speedUp;}
