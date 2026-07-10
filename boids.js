@@ -215,21 +215,29 @@ async function main() {
     });
     observer.observe(canvas);
 
-    let mouseX = 0;
-    let mouseY = 0;
-    let refreshMouse = (event) => {
+    let pointerX = 0;
+    let pointerY = 0;
+    let pointerHeld = 0;
+
+    window.addEventListener("pointermove", () => {
         // Rescale to -1 to +1, the scaling used by the vertex shaders
-        mouseX = (2 * event.clientX / canvas.width) -1;
-        mouseY = -((2* event.clientY / canvas.height)-1);
-    };
-    window.addEventListener("mousemove", refreshMouse);
+        pointerX = (2 * event.clientX / canvas.width) -1;
+        pointerY = -((2* event.clientY / canvas.height)-1);
+    });
+
+    window.addEventListener('pointerdown', () => { pointerHeld = 1; });
+
+    window.addEventListener('pointerup', () => { pointerHeld = 0; });
+    window.addEventListener('pointeleave', () => { pointerHeld = 0; });
+    window.addEventListener('pointercancel', () => { pointerHeld = 0; });
 
     function frame(timestamp) {
         // mess with the uniforms to see them working
         // they get written to the buffer
-        uniformData[0] = mouseX;
-        uniformData[1] = mouseY;
-        uniformData[2] = timestamp / 1000;
+        uniformData[0] = pointerX;
+        uniformData[1] = pointerY;
+        uniformData[2] = pointerHeld;
+        uniformData[3] = timestamp / 1000;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
         computeAndRender();

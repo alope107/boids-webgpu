@@ -6,11 +6,13 @@ struct Boid {
     color:    vec4f, // 16 bytes
 } // Total 32 bytes
 
+// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+// CHANGE IT IN THE OTHER SHADER TOO
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
-    mousePos : vec2f, // 8 bytes
+    pointerPos : vec2f, // 8 bytes
+    pointerHeld : u32, // 4 bytes
     time : f32 // 4 bytes
-    //pad 4 bytes
 } // total: 16 bytes
 
 
@@ -18,8 +20,6 @@ struct Uniforms {
 @group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
 
 @compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
-        // Adding a dummy for now so uniforms doesn't get tossed
-    _ = uniforms;
     // let's us get the invocation id's x.
     // We're doing 1d workgroups, so only the x is relevant
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
@@ -37,7 +37,9 @@ struct Uniforms {
     let edgeFactor = .0001;
     let wall = 1.05; // how far off the edge of the screen the boid can get before wrapping
     let minSpeed = .010;
-    let speedUp = 1.01; // if below minSpeed, accelerate by speedUP 
+    let speedUp = 1.01; // if below minSpeed, accelerate by speedUP
+    let pointerRadius = .2;
+    let pointerPush = .002;
 
 
     var neighborCount = 0u;
@@ -77,6 +79,14 @@ struct Uniforms {
         newVel += (center - me.position) * cohesionFactor;
     }
 
+    if(uniforms.pointerHeld > 0) {
+        let delta = me.position - uniforms.pointerPos;
+        let deltaLen = length(delta);
+        if(deltaLen < pointerRadius) {
+            newVel += delta / length(delta) * pointerPush; 
+        }
+    }
+
     if (length(newVel) < minSpeed) {newVel *= speedUp;}
     boids[myIdx].velocity = newVel;
     boids[myIdx].position = me.position + newVel;
@@ -105,7 +115,7 @@ struct Uniforms {
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
     // So maybe we'll end up having 1 per boid too? Idk
     let i = id.x;
-    var pull = uniforms.mousePos - boids[i].position;
+    var pull = uniforms.pointerPos - boids[i].position;
     pull /= length(pull);
     boids[i].velocity = boids[i].velocity + pull/10;
     boids[i].position += boids[i].velocity/1000;

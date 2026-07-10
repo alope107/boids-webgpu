@@ -6,11 +6,13 @@ struct Boid {
     color:    vec4f, // 16 bytes
 } // Total 32 bytes
 
+// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+// CHANGE IT IN THE OTHER SHADER TOO
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
-    mousePos : vec2f, // 8 bytes
+    pointerPos : vec2f, // 8 bytes
+    pointerHeld : u32, // 4 bytes
     time : f32 // 4 bytes
-    //pad 4 bytes
 } // total: 16 bytes
 
 struct VertexOutput {
