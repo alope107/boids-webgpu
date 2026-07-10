@@ -10,10 +10,10 @@ struct Boid {
 
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
-    time : f32,
-    xShift : f32, // not needed, can remove
-    mousePos : vec2f
-}
+    mousePos : vec2f, // 8 bytes
+    time : f32 // 4 bytes
+    //pad 4 bytes
+} // total: 16 bytes
 
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -29,7 +29,7 @@ struct Uniforms {
     let boidCount = arrayLength(&boids);
 
     // Adding a dummy for now so uniforms doesn't get tossed
-    let dummy = uniforms.xShift;
+    let dummy = uniforms.time;
 
     // tuneable!
     let sightRadius = .04;

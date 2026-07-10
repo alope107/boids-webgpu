@@ -35,7 +35,7 @@ async function main() {
     ]);
 
 
-    // I think the shader code gets compiled when the module is created?
+    // Gets compiled when the module is created?
     const computeModule = device.createShaderModule({
         label: "compute boid values shader",
         code: computeShaderCode
@@ -45,7 +45,7 @@ async function main() {
         code: renderShaderCode
     });
 
-    // Our pipelines define how our bind groups (read: buffers?) are laid out
+    // Our pipelines define how our bind groups are laid out
     // and which shader functions should be called
     const computePipeline = device.createComputePipeline({
         label: 'compute boids pipeline',
@@ -56,6 +56,7 @@ async function main() {
         compute: {
             module: computeModule,
             entryPoint: "updatePosition"
+            //entryPoint: "updatePositionMouse" // swap to me if u want mouse attract instead of actual boids
         },
     });
     const renderPipeline = device.createRenderPipeline({
@@ -73,13 +74,14 @@ async function main() {
     });
 
 
-    // struct Uniforms {
-    //     time : f32,
-    //     xShift : f32, // not needed, can remove
-    //     mousePos : vec2f
-    // }
-    const uniformCount = 4;
-    const uniformData = new Float32Array(uniformCount);
+// Corresponds to the uniforms typed array in the JS
+// struct Uniforms {
+//     mousePos : vec2f, // 8 bytes
+//     time : f32 // 4 bytes
+//     //pad 4 bytes
+// } // total: 16 bytes (4 floats)
+    const uniformFloatCount = 4;
+    const uniformData = new Float32Array(uniformFloatCount);
 
     const uniformBuffer = device.createBuffer({
         label: "uniform buffer",
@@ -225,10 +227,9 @@ async function main() {
     function frame(timestamp) {
         // mess with the uniforms to see them working
         // they get written to the buffer
-        uniformData[0] = timestamp / 1000;
-        uniformData[1] += -.001;
-        uniformData[2] = mouseX;
-        uniformData[3] = mouseY;
+        uniformData[0] = mouseX;
+        uniformData[1] = mouseY;
+        uniformData[2] = timestamp / 1000;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
         computeAndRender();

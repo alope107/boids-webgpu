@@ -10,10 +10,10 @@ struct Boid {
 
 // Corresponds to the uniforms typed array in the JS
 struct Uniforms {
-    time : f32,
-    xShift : f32,
-    mousePos : vec2f
-}
+    mousePos : vec2f, // 8 bytes
+    time : f32 // 4 bytes
+    //pad 4 bytes
+} // total: 16 bytes
 
 // Matches our nice bind groups
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
