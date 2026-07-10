@@ -34,8 +34,6 @@ async function main() {
         renderCodeResp.text()
     ]);
 
-
-    // Gets compiled when the module is created?
     const computeModule = device.createShaderModule({
         label: "compute boid values shader",
         code: computeShaderCode
@@ -55,7 +53,10 @@ async function main() {
         layout: 'auto', 
         compute: {
             module: computeModule,
-            entryPoint: "updatePosition"
+            entryPoint: "updatePosition",
+            constants: {
+                sepFactor: .01,
+            }
             //entryPoint: "updatePositionMouse" // swap to me if u want mouse attract instead of actual boids
         },
     });
