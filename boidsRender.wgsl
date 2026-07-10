@@ -52,31 +52,6 @@ struct Uniforms {
     return vec4f(basePos, 0., 1.);
 }
 
-// Dummy function for just making some triangles
-// @vertex fn hardcodedTriangles(
-//     @builtin(vertex_index) vertexIndex : u32, // automatically populated!
-// ) -> @builtin(position) vec4f {
-    
-//     // Just some dummy triangles
-//     let pos = array(
-//         vec2f(0.0, -1.0 * sin(uniforms.time)),
-//         vec2f(-0.5* sin(uniforms.time), -0.5),
-//         vec2f(0.5, -0.5),
-
-//         vec2f(1.0 + uniforms.xShift, 1.0),
-//         vec2f(.8 + uniforms.xShift, .8),
-//         vec2f(.6 + uniforms.xShift, .8),
-
-//         vec2f(nums[0], 1.0),
-//         vec2f(nums[1], .8),
-//         vec2f(nums[2], .8),
-//     );
-    
-//     // Gets the x/y, z is 0, w is 1
-//     // w is 1/w from clip-space. A mystery for another day!
-//     return vec4f(pos[vertexIndex], 0.0, 1.0);
-// }
-
 
 //pos : position of the pixel (in screen space!)
 // @location(0)... f if I know. I'm tired. I'll look at that later

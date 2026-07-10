@@ -1,5 +1,3 @@
-// Ideating boids struct:
-
 // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
 // CHANGE IT IN THE OTHER SHADER TOO
 struct Boid {
@@ -26,8 +24,7 @@ struct Uniforms {
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
 
 
-// Just modifies some data uselessly
-// Still don't get workgroups
+
 @compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
     // let's us get the invocation id's x.
     // We're doing 1d workgroups, so only the x is relevant
@@ -41,28 +38,25 @@ struct Uniforms {
     let dummy = uniforms.xShift;
 
     // tuneable!
-    let sightRadius = .05;
-    let sepFactor = .08;
+    let sightRadius = .04;
+    let sepFactor = .01;
     let alignFactor = .5;
-    let cohesionFactor = .01;
+    let cohesionFactor = .001;
     let edgeFactor = .0001;
-    let wall = 1.05;
+    let wall = 1.05; // how far off the edge of the screen the boid can get before wrapping
     let minSpeed = .010;
     let speedUp = 1.01;
 
 
-    var sepVec = vec2f(0, 0);
     var neighborCount = 0u;
-
-    var avgNeighborVel = vec2f(0, 0);
-
-    var center = vec2f(0, 0);
+    var sepVec = vec2f();
+    var avgNeighborVel = vec2f();
+    var center = vec2f();
 
     // TODO: bucketing so this isn't n^2
     for (var i = 0u; i< boidCount; i++) {
         if(myIdx == i) {continue;} // don't include self in averages
         let other = boidsOld[i];
-
         let delta = me.position - other.position;
 
         // Check if within sight radius
@@ -71,8 +65,8 @@ struct Uniforms {
         if(dist > sightRadius) {continue;}
         neighborCount++;
 
-        sepVec += (sightRadius -dist) * delta;
-        // sepVec += delta;
+        sepVec += ((sightRadius -dist)/dist) * delta;
+        // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
         avgNeighborVel += other.velocity;
 
         center += other.position;
@@ -98,6 +92,7 @@ struct Uniforms {
     boidsNew[myIdx].position = me.position + newVel;
 
 
+    // Wrap
     if(boidsNew[myIdx].position.x > wall) {
         boidsNew[myIdx].position.x -= 2*wall;
     }

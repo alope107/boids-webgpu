@@ -72,64 +72,40 @@ async function main() {
         }
     });
 
-    // ---------------- START DUMMY ------------------
-    // TODO set initial boid positions
-    // TODO use boids instead of dummy stuff
 
-    // THESE ARE DUMMY BUFFERS FOR VALIDATING SETUP
-    // REMOVE ONCE ACTUALLY IMPLEMENTING BOIDS
-
+    // struct Uniforms {
+    //     time : f32,
+    //     xShift : f32, // not needed, can remove
+    //     mousePos : vec2f
+    // }
     const uniformCount = 4;
     const uniformData = new Float32Array(uniformCount);
 
-
     const uniformBuffer = device.createBuffer({
-        label: "dummy uniform buffer",
+        label: "uniform buffer",
         size: uniformData.byteLength,
         usage: GPUBufferUsage.UNIFORM | // We'll be using it as uniform (think globals) in the shaders
                GPUBufferUsage.COPY_DST  // We need this because we'll be copying to it from the CPU
     });
 
-    // We will ping pong back and forth between these data
-    // In the actual boids we'll do this to allow all boids to look at the previous locations
-    // of their neighbors to avoid data races (though realistically the data race wouldn't really harm the viz I don't think)
-    const ping = new Float32Array([.2, .3, .7]);
-    const pong = new Float32Array([0, 0, 0]);
-
-
-    // ----------------- END DUMMY -------------------
-
-    // Buffers are stored in GPU VRAM
-    // Here we will define how we want to allocate space for them
-    const pingBuffer = device.createBuffer({
-        label: "ping buffer",
-        size: ping.byteLength,
-        usage: GPUBufferUsage.STORAGE  | // Storage is for big data, unlike uniforms
-               GPUBufferUsage.COPY_DST | // We'll start by copying from the CPU
-               GPUBufferUsage.VERTEX     // We want to use it in the vertex shader
-    });
-    const pongBuffer = device.createBuffer({ // Same as ping buffer
-        label: "pong buffer",
-        size: pong.byteLength,
-        usage: GPUBufferUsage.STORAGE  |
-               GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.VERTEX 
-    });
-
+//     struct Boid {
+//     position: vec2f, // 8 bytes
+//     velocity: vec2f, // 8 bytes
+//     angle: f32       // 4 bytes // Not needed anymore, will remove later
+//     // pad              4 bytes
+// } // Total 24 bytes
+// // Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
     // Changing boid struct? All this needs to change!
     const boidStructSize = 24;
     const floatCount = boidStructSize / 4;
     const boidCount = 1000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
-    console.log(boidValues);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
     const boidViews = {
         position: new Float32Array(boidValues, 0),
         velocity: new Float32Array(boidValues, 8),
         angle: new Float32Array(boidValues, 16),
     };
-    console.log(boidViews);
-
     let jsBoids = [];
 
     let rand = (min, max) => Math.random() * (max-min) + min;
@@ -223,16 +199,8 @@ async function main() {
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
-        // // New rando boids every frame!
-        // for(let i = 0; i < boidCount; i++) {
-        //     boidViews.position.set([randInside(), randInside()], i*floatCount);
-        //     boidViews.velocity.set([randInside(), randInside()], i*floatCount);
-        //     boidViews.angle.set([rand(0, 360)], i*floatCount);
-        // }
-        // device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
 
-        // SKIPPING COMPUTE PASS FOR NOW
         // in this pass we will encode all of the suff we set up for the compute
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(computePipeline);
@@ -243,7 +211,6 @@ async function main() {
         // I _think_ it's number of tasks?
         // But it can also be 2 or 3d which I don't understand why that would be needed
         // I think I understand this the least!
-        //computePass.dispatchWorkgroups(ping.length);
         computePass.dispatchWorkgroups(boidCount);
         computePass.end();
 
@@ -288,18 +255,16 @@ async function main() {
 
     let mouseX = 0;
     let mouseY = 0;
-
     let refreshMouse = (event) => {
         // Rescale to -1 to +1, the scaling used by the vertex shaders
         mouseX = (2 * event.clientX / canvas.width) -1;
         mouseY = -((2* event.clientY / canvas.height)-1);
     };
-
     window.addEventListener("mousemove", refreshMouse);
 
     function frame(timestamp) {
         // mess with the uniforms to see them working
-        // they get written to the 
+        // they get written to the buffer
         uniformData[0] = timestamp / 1000;
         uniformData[1] += -.001;
         uniformData[2] = mouseX;
@@ -307,7 +272,6 @@ async function main() {
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
         computeAndRender();
-
         requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
