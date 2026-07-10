@@ -116,7 +116,7 @@ async function main() {
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
-        boidViews.color.set([rand(), rand(), rand(), 1.0], i*floatCount);
+        boidViews.color.set([Math.random(), Math.random(), Math.random(), 1.0], i*floatCount);
     }
 
     const boidBuffer = device.createBuffer({

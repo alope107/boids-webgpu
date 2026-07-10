@@ -13,9 +13,10 @@ struct Uniforms {
     //pad 4 bytes
 } // total: 16 bytes
 
-// struct VertexOutput {
-
-// }
+struct VertexOutput {
+    @builtin(position) position : vec4f,
+    @location(0) color : vec4f
+}
 
 // Matches our nice bind groups
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -24,7 +25,9 @@ struct Uniforms {
 @vertex fn boidVertex(
     @builtin(vertex_index) vertexIdx : u32,
     @builtin(instance_index) boidIdx : u32
-) -> @builtin(position) vec4f {
+) -> VertexOutput {
+    _ = uniforms; // dummy so uniforms don't get thrown away
+
     // TODO: Maybe make these offsets uniform? Or variable per boid?
     let cornerOffsets = array<vec2f, 3>(
         vec2f(.03, 0),
@@ -40,18 +43,15 @@ struct Uniforms {
         vec2f(length(cornerOffsets[vertexIdx]) * cos(newAngle),
               length(cornerOffsets[vertexIdx]) * sin(newAngle));
 
-    let basePos = boids[boidIdx].position + rotated;
-    let velOffset = boids[boidIdx].velocity * uniforms.time / 10.;
+    let newPos = boids[boidIdx].position + rotated;
 
-
-    let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
-
-    return vec4f(basePos, 0., 1.);
+    return VertexOutput(
+        vec4f(newPos, 0., 1.),
+        boids[boidIdx].color // use the color o' the boid
+    );
 }
 
-
-//pos : position of the pixel (in screen space!)
-// @location(0)... f if I know. I'm tired. I'll look at that later
-@fragment fn boidFragment(@builtin(position) pos : vec4f) -> @location(0) vec4f {
-    return vec4f(pos.x/484.0 * sin(uniforms.time), pos.y/716.0, 1.0, 1.0);
+// Output of vertex is input to fragment!
+@fragment fn boidFragment(fragInput : VertexOutput) -> @location(0) vec4f {
+    return fragInput.color;
 }
