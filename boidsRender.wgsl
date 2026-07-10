@@ -23,20 +23,18 @@ struct Uniforms {
     @builtin(vertex_index) vertexIndex : u32
 ) -> @builtin(position) vec4f {
     let boid_idx = vertexIndex / 3; // Each boid has 3 vertices
-
-    // TODO: Maybe make these offsets uniform?
+    
     let corner = vertexIndex % 3;
 
+    // TODO: Maybe make these offsets uniform? Or variable per boid?
     let cornerOffsets = array<vec2f, 3>(
         vec2f(.03, 0),
         vec2f(0, -.01),
-        vec2f(0, .01), // using nums[0] so as to keep it from disappearing and messing up the bind group
+        vec2f(0, .01), 
     );
 
     let originalAngle = atan2(cornerOffsets[corner].y, cornerOffsets[corner].x);
     
-    // based off angle var
-    //let newAngle = originalAngle + boids[boid_idx].angle;
     let newAngle = originalAngle + atan2(boids[boid_idx].velocity.y, boids[boid_idx].velocity.x);
 
     let rotated = 

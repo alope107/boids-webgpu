@@ -117,63 +117,32 @@ async function main() {
         boidViews.angle.set([rand(0, 2*Math.PI)], i*floatCount);
     }
 
-    const boidBufferPing = device.createBuffer({
-        label: "boid struct buffer ping",
+    const boidBuffer = device.createBuffer({
+        label: "boid struct buffer",
         size: boidValues.byteLength,
         usage: GPUBufferUsage.STORAGE |
                GPUBufferUsage.COPY_DST |
                GPUBufferUsage.VERTEX
     });
 
-    const boidBufferPong = device.createBuffer({
-        label: "boid struct buffer pong",
-        size: boidValues.byteLength,
-        usage: GPUBufferUsage.STORAGE |
-               GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.VERTEX
-    });
 
-    // Bind groups for the compute shader
-    // Bind groups will define the mappings of how the shaders will access the data
-    // Here we'll make ping->pong and pong->ping bind groups
-    // We can swap them in JS, meaning that the shader doesn't need to know
-    // that it's being flipped back and forth! It'll just treat whatever's at binding 0
-    // as the old and binding 1 as the new
-    // We need both the ping and pong in the compute shader, but (for now) we don't need the uniform)
-    const computeBindGroupPingToPong = device.createBindGroup({
+    // Bind group for the compute shader
+    const computeBindGroup = device.createBindGroup({
         label: "compute bind group for reading from ping and writing to pong",
         layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
-            {binding: 0, resource: boidBufferPing},
-            {binding: 1, resource: boidBufferPong},
-            { binding: 2, resource: uniformBuffer },
-        ]
-    });
-    const computeBindGroupPongToPing = device.createBindGroup({
-        label: "compute bind group for reading from pong and writing to ping",
-        layout: computePipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
-        entries: [
-            {binding: 0, resource: boidBufferPong},
-            {binding: 1, resource: boidBufferPing},
-            { binding: 2, resource: uniformBuffer },
+            { binding: 0, resource: uniformBuffer },
+            { binding: 1, resource: boidBuffer },
         ]
     });
 
-    // For the render pipeline we'll pass it the uniforms but only one of ping or pong
-    const renderBindGroupPing = device.createBindGroup({
+    // Bind group for the vertex and fragment shaders
+    const renderBindGroup = device.createBindGroup({
         label: "render bind group for uniforms and ping",
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: boidBufferPing },
-        ]
-    });
-    const renderBindGroupPong = device.createBindGroup({
-        label: "render bind group for uniforms and pong",
-        layout: renderPipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: boidBufferPong }
+            { binding: 1, resource: boidBuffer },
         ]
     });
 
@@ -190,23 +159,18 @@ async function main() {
     }
 
     // Set up ping and pong buffers with the initial data from the CPU
-    device.queue.writeBuffer(boidBufferPing, 0, boidValues);
-    device.queue.writeBuffer(boidBufferPong, 0, boidValues);
+    device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
-    let pingToPong = true;
     // to be called every frame
     function computeAndRender() {
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
-
-
         // in this pass we will encode all of the suff we set up for the compute
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(computePipeline);
         // // ping pong our bind groups
-        computePass.setBindGroup(0,
-            pingToPong ? computeBindGroupPingToPong : computeBindGroupPongToPing);
+        computePass.setBindGroup(0, computeBindGroup);
         // Workgroups are still unclear to me. Number of cores? Number of tasks?
         // I _think_ it's number of tasks?
         // But it can also be 2 or 3d which I don't understand why that would be needed
@@ -221,8 +185,7 @@ async function main() {
         // let's do another pass for the rendering~
         const renderPass = encoder.beginRenderPass(renderPassDescriptor);
         renderPass.setPipeline(renderPipeline);
-        renderPass.setBindGroup(0,
-            pingToPong ? renderBindGroupPing : renderBindGroupPong);
+        renderPass.setBindGroup(0, renderBindGroup);
         renderPass.draw(3*boidCount); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
@@ -235,9 +198,6 @@ async function main() {
 
         // Actually send the whole shebang to the jeep y you
         device.queue.submit([commandBuffer]);
-
-        // flip the ping pong
-        pingToPong = !pingToPong;
     }
 
     // Resize canvas resolution when screen resized yada yada yada

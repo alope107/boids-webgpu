@@ -6,7 +6,10 @@
 
 3.5. Does removing ping-pong impact anything?
 
+3.52. Instance numbers!
+
 3.55. Colors. Figure out how fragment shader knows which boid it is. Color appropriately!
+    a. Interstage variables!
 
 3.6. Possible fun:
     a. Obstacles?
@@ -15,7 +18,8 @@
 
 3.65. More tuning?
 
-3.7 Something something workgroups?
+3.7. Improvements
+    a. Something something workgroups?
 
 4. Spatial partitioning - 3 compute shaders!
     a. Parallel: compute gridLoc for each boid. 
