@@ -20,13 +20,9 @@ struct Uniforms {
 @group(0) @binding(1) var<storage, read> boids : array<Boid>;
 
 @vertex fn boidVertex(
-    @builtin(vertex_index) vertexIndex : u32,
-    @builtin(instance_index) instanceIndex : u32
+    @builtin(vertex_index) vertexIdx : u32,
+    @builtin(instance_index) boidIdx : u32
 ) -> @builtin(position) vec4f {
-    let boid_idx = instanceIndex; // Each boid has 3 vertices
-    
-    let corner = vertexIndex;
-
     // TODO: Maybe make these offsets uniform? Or variable per boid?
     let cornerOffsets = array<vec2f, 3>(
         vec2f(.03, 0),
@@ -34,16 +30,16 @@ struct Uniforms {
         vec2f(0, .01), 
     );
 
-    let originalAngle = atan2(cornerOffsets[corner].y, cornerOffsets[corner].x);
+    let originalAngle = atan2(cornerOffsets[vertexIdx].y, cornerOffsets[vertexIdx].x);
     
-    let newAngle = originalAngle + atan2(boids[boid_idx].velocity.y, boids[boid_idx].velocity.x);
+    let newAngle = originalAngle + atan2(boids[boidIdx].velocity.y, boids[boidIdx].velocity.x);
 
     let rotated = 
-        vec2f(length(cornerOffsets[corner]) * cos(newAngle),
-              length(cornerOffsets[corner]) * sin(newAngle));
+        vec2f(length(cornerOffsets[vertexIdx]) * cos(newAngle),
+              length(cornerOffsets[vertexIdx]) * sin(newAngle));
 
-    let basePos = boids[boid_idx].position + rotated;
-    let velOffset = boids[boid_idx].velocity * uniforms.time / 10.;
+    let basePos = boids[boidIdx].position + rotated;
+    let velOffset = boids[boidIdx].velocity * uniforms.time / 10.;
 
 
     let originalOrient = atan2(cornerOffsets[0].y, cornerOffsets[0].x);
