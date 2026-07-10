@@ -20,11 +20,12 @@ struct Uniforms {
 @group(0) @binding(1) var<storage, read> boids : array<Boid>;
 
 @vertex fn boidVertex(
-    @builtin(vertex_index) vertexIndex : u32
+    @builtin(vertex_index) vertexIndex : u32,
+    @builtin(instance_index) instanceIndex : u32
 ) -> @builtin(position) vec4f {
-    let boid_idx = vertexIndex / 3; // Each boid has 3 vertices
+    let boid_idx = instanceIndex; // Each boid has 3 vertices
     
-    let corner = vertexIndex % 3;
+    let corner = vertexIndex;
 
     // TODO: Maybe make these offsets uniform? Or variable per boid?
     let cornerOffsets = array<vec2f, 3>(

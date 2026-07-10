@@ -188,7 +188,7 @@ async function main() {
         const renderPass = encoder.beginRenderPass(renderPassDescriptor);
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0, renderBindGroup);
-        renderPass.draw(3*boidCount); // draw 9 vertices. We will later update this to 3*boidCount
+        renderPass.draw(3, boidCount); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
         // We've encoded all the commands!

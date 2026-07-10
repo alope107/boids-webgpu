@@ -1,12 +1,14 @@
-1. Boid array renderable. Filled in JS with junk data
-2. Boids movable in compute shader. Just move linearly in some direction
-3. Boids actually boiding? 
+1. Boid array renderable. Filled in JS with junk data ✅ 
+2. Boids movable in compute shader. Just move linearly in some direction ✅ 
+3. Boids actually boiding? ✅ 
 
-3.1. Cleanup!
+3.1. Cleanup! ✅ 
 
-3.5. Does removing ping-pong impact anything?
+3.5. Does removing ping-pong impact anything?✅ 
+    answer: still runs just fine! Introduces some non-determinism, but is imperceptible
 
 3.52. Instance numbers!
+
 
 3.55. Colors. Figure out how fragment shader knows which boid it is. Color appropriately!
     a. Interstage variables!

@@ -20,18 +20,18 @@ struct Uniforms {
 @group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
 
 @compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
+        // Adding a dummy for now so uniforms doesn't get tossed
+    _ = uniforms;
     // let's us get the invocation id's x.
     // We're doing 1d workgroups, so only the x is relevant
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
     // So maybe we'll end up having 1 per boid too? Idk
     let myIdx = id.x;
-    let me = boids[myIdx];
+    let me = boids[myIdx]; // Maaaaybe pointer would be better?
     let boidCount = arrayLength(&boids);
 
-    // Adding a dummy for now so uniforms doesn't get tossed
-    let dummy = uniforms.time;
 
-    // tuneable!
+    // tuneable! (maybe set as constants?)
     let sightRadius = .04;
     let sepFactor = .01;
     let alignFactor = .5;
@@ -39,7 +39,7 @@ struct Uniforms {
     let edgeFactor = .0001;
     let wall = 1.05; // how far off the edge of the screen the boid can get before wrapping
     let minSpeed = .010;
-    let speedUp = 1.01;
+    let speedUp = 1.01; // if below minSpeed, accelerate by speedUP 
 
 
     var neighborCount = 0u;
@@ -78,8 +78,6 @@ struct Uniforms {
         center /= f32(neighborCount);
         newVel += (center - me.position) * cohesionFactor;
     }
-
-
 
     if (length(newVel) < minSpeed) {newVel *= speedUp;}
     boids[myIdx].velocity = newVel;
