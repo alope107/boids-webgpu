@@ -42,11 +42,13 @@ struct Uniforms {
 
     // tuneable!
     let sightRadius = .05;
-    let sepFactor = .008;
-    let alignFactor = .05;
-    let cohesionFactor = .001;
+    let sepFactor = .08;
+    let alignFactor = .5;
+    let cohesionFactor = .01;
     let edgeFactor = .0001;
-    let wall = .9;
+    let wall = 1.05;
+    let minSpeed = .010;
+    let speedUp = 1.01;
 
 
     var sepVec = vec2f(0, 0);
@@ -70,6 +72,7 @@ struct Uniforms {
         neighborCount++;
 
         sepVec += (sightRadius -dist) * delta;
+        // sepVec += delta;
         avgNeighborVel += other.velocity;
 
         center += other.position;
@@ -88,21 +91,38 @@ struct Uniforms {
         newVel += (center - me.position) * cohesionFactor;
     }
 
-    if(me.position.x > wall) {
-        newVel.x -= edgeFactor;
-    }
-    if(me.position.x < -wall) {
-        newVel.x += edgeFactor;
-    }
-    if(me.position.y > wall) {
-        newVel.y -= edgeFactor;
-    }
-    if(me.position.y < -wall) {
-        newVel.y += edgeFactor;
-    }
+    // if(me.position.x > wall) {
+    //     newVel.x -= edgeFactor;
+    // }
+    // if(me.position.x < -wall) {
+    //     newVel.x += edgeFactor;
+    // }
+    // if(me.position.y > wall) {
+    //     newVel.y -= edgeFactor;
+    // }
+    // if(me.position.y < -wall) {
+    //     newVel.y += edgeFactor;
+    // }
 
+
+
+    if (length(newVel) < minSpeed) {newVel *= speedUp;}
     boidsNew[myIdx].velocity = newVel;
     boidsNew[myIdx].position = me.position + newVel;
+
+
+    if(boidsNew[myIdx].position.x > wall) {
+        boidsNew[myIdx].position.x -= 2*wall;
+    }
+    if(boidsNew[myIdx].position.x < -wall) {
+        boidsNew[myIdx].position.x += 2*wall;
+    }
+    if(boidsNew[myIdx].position.y > wall) {
+        boidsNew[myIdx].position.y -= 2*wall;
+    }
+    if(boidsNew[myIdx].position.y < -wall) {
+        boidsNew[myIdx].position.y += 2*wall;
+    }
 }
 
 
