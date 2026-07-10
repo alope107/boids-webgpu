@@ -90,15 +90,17 @@ async function main() {
                GPUBufferUsage.COPY_DST  // We need this because we'll be copying to it from the CPU
     });
 
-//     struct Boid {
+// // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+// // CHANGE IT IN THE OTHER SHADER TOO
+// struct Boid {
 //     position: vec2f, // 8 bytes
 //     velocity: vec2f, // 8 bytes
-//     angle: f32       // 4 bytes // Not needed anymore, will remove later
-//     // pad              4 bytes
-// } // Total 24 bytes
-// // Gets extra 4 bytes of padding so the next vec2f can properly be aligned to 8 bytes
+//     color:    vec3f, // 12 bytes
+//     // pad           // 4 bytes
+// } // Total 32 bytes
+// // Gets extra 4 bytes of padding so the next vec3f can properly be aligned
     // Changing boid struct? All this needs to change!
-    const boidStructSize = 24;
+    const boidStructSize = 32;
     const floatCount = boidStructSize / 4;
     const boidCount = 1000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
@@ -106,17 +108,17 @@ async function main() {
     const boidViews = {
         position: new Float32Array(boidValues, 0),
         velocity: new Float32Array(boidValues, 8),
-        angle: new Float32Array(boidValues, 16),
+        color: new Float32Array(boidValues, 16),
     };
     let jsBoids = [];
 
-    let rand = (min, max) => Math.random() * (max-min) + min;
-    let randInside = () => rand(-1, 1);
+    let rand = (min, max) => Math.random() * (max-min) + min; // random in range
+    let randInside = () => rand(-1, 1); // random inside vertex coordinate space
 
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
-        boidViews.angle.set([rand(0, 2*Math.PI)], i*floatCount);
+        boidViews.color.set([rand(), rand(), rand()], i*floatCount);
     }
 
     const boidBuffer = device.createBuffer({
