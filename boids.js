@@ -117,7 +117,8 @@ async function main() {
     for(let i = 0; i < boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
-        boidViews.color.set([Math.random(), Math.random(), Math.random(), 1.0], i*floatCount);
+        //boidViews.color.set([Math.random(), Math.random(), Math.random(), 1.0], i*floatCount); //confetti
+        boidViews.color.set([0, 0, 1., 1.0], i*floatCount); // blue
     }
 
     const boidBuffer = device.createBuffer({
@@ -154,7 +155,8 @@ async function main() {
         label: "canvas renderPass",
         colorAttachments: [ 
             {
-                clearValue: [.3, .3, .3, 1], // What color the screen be cleared to
+                //clearValue: [.3, .3, .3, 1], // grey clear
+                clearValue: [.0, .0, .0, 1], //black clear
                 loadOp: 'clear', // clear the screen before starting the render pass
                 storeOp: 'store' // actually save to the screen. (we would use discard if this was only an intermediate step)
             }
@@ -178,7 +180,11 @@ async function main() {
         // I _think_ it's number of tasks?
         // But it can also be 2 or 3d which I don't understand why that would be needed
         // I think I understand this the least!
-        computePass.dispatchWorkgroups(boidCount);
+
+        // if this changes, it needs to be changed in the shader as well
+        let workgroupSize = [8, 8, 1];
+
+        computePass.dispatchWorkgroups(Math.ceil(boidCount/(workgroupSize[0]*workgroupSize[1]*workgroupSize[2])));
         computePass.end();
 
         // I think the Canvas has a new texture each frame, so we need to make sure we're drawing

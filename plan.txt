@@ -17,7 +17,7 @@
 
 3.6. Possible fun:
     a. Obstacles?
-    b. Mouse attract / repel?
+    b. Mouse attract / repel? ✅
     c. Different speeds / sizes / shapes?
 
 3.65. More tuning?

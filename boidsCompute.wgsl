@@ -19,12 +19,23 @@ struct Uniforms {
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
 
-@compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
+// Old, single sized workgroups(lame)
+//@compute @workgroup_size(1) fn updatePosition(@builtin(global_invocation_id) id : vec3u) {
+
+// Splitting the workgroups made a HUGE difference on laptop
+// not much of a diff on phone?
+// interes...
+// if workgroup_size changes, it needs to be changed in the shader as well
+@compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
     // let's us get the invocation id's x.
     // We're doing 1d workgroups, so only the x is relevant
     // I THINK this means that we're going to have each... worker? working on a separate element of the array
     // So maybe we'll end up having 1 per boid too? Idk
-    let myIdx = id.x;
+    let myIdx = id; // Does this need to change for multidimensional workgroup?
+
+    // If we have more threads than boids, the extra threads don't need to do anything
+    if(myIdx >= arrayLength(&boids)) { return; }
+
     let me = boids[myIdx]; // Maaaaybe pointer would be better?
     let boidCount = arrayLength(&boids);
 
