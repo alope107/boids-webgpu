@@ -100,7 +100,8 @@ async function main() {
     // Changing boid struct? All this needs to change!
     const boidStructSize = 32;
     const floatCount = boidStructSize / 4;
-    const boidCount = 1000; // chugs at 5000 on laptop on batter power atm
+    // Gets boidCount from "count" queryParam if present, else defaults to 1000
+    const boidCount = new URLSearchParams(window.location.search).get("count") || 1000;
     const boidValues = new ArrayBuffer(boidCount * boidStructSize);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
     const boidViews = {
