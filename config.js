@@ -1,0 +1,42 @@
+const colorFnMap = {
+    confetti: () => [Math.random(), Math.random(), Math.random(), 1.0],
+    blue: () => [0, 0, 1., 1.0]
+};
+
+// Tunables!
+const defaults = {
+    boidCount : 1000,
+    colorFn: colorFnMap.confetti,
+    overrides: {
+        sightRadius : .04,
+        wall : 1.05,
+        sepFactor : .01,
+        alignFactor : .5,
+        cohesionFactor : .001,
+        edgeFactor : .0001,
+        minSpeed : .010,
+        speedUp : 1.01, // if below minSpeed, accelerate by speedUp
+        pointerRadius : .2,
+        pointerPush : .002,
+    }
+};
+
+// does not currently validate params!
+const configFromQueryParams = (defaultConfig=defaults) => {
+    const params = new URLSearchParams(window.location.search);
+
+    const overrides = {};
+    for(const [tunable, defaultVal] of Object.entries(defaultConfig.overrides)) {
+        overrides[tunable] = params.get(tunable) || defaultVal;
+    }
+    
+    const conf = {
+        boidCount : params.get("count") || defaultConfig.boidCount,
+        colorFn: colorFnMap[params.get("color")] || defaultConfig.colorFn,
+        overrides
+    };
+    console.log(conf);
+    return conf;
+};
+
+export { defaults, configFromQueryParams };
