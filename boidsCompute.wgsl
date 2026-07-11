@@ -1,5 +1,5 @@
-// tuneable! (maybe set as constants?)
-override sightRadius : f32; // set exclusively in JS because needed for bucket calc
+override sightRadius : f32; 
+override protectedRadius : f32;
 override sepFactor : f32;
 override alignFactor : f32;
 override cohesionFactor : f32;
@@ -95,12 +95,6 @@ fn bucketIdx(position : vec2f) -> u32 {
     }
 }
 
-
-
-// Splitting the workgroups made a HUGE difference on laptop
-// not much of a diff on phone?
-// interes...
-// if workgroup_size changes, it needs to be changed in the shader as well
 @compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
     let myIdx = id;
     // If we have more threads than boids, the extra threads don't need to do anything
@@ -145,14 +139,17 @@ fn bucketIdx(position : vec2f) -> u32 {
             let other = boids[bucketedIds[i]];
             let delta = me.position - other.position;
 
-            // Check if within sight radius
-            // Could prob be done faster comparing squared distances
-            let dist = length(delta);
-            if(dist > sightRadius) {continue;}
+            // TODO: squared distances
+            let squaredDist = dot(delta, delta);
+
+            // TODO: precompute squared radii?
+            if(squaredDist > sightRadius*sightRadius) {continue;}
             neighborCount++;
 
-            sepVec += ((sightRadius - dist)/dist) * delta;
-            //sepVec += delta; // this is more the classic boids way, but has caused problems for me?
+
+            if (squaredDist < protectedRadius*protectedRadius) {
+                sepVec += delta;
+            }
             avgNeighborVel += other.velocity;
 
             center += other.position;

@@ -9,9 +9,10 @@ const defaults = {
     colorFn: colorFnMap.confetti,
     overrides: {
         sightRadius : .04,
+        protectedRadius: .03,
         wall : 1.05,
-        sepFactor : .01,
-        alignFactor : .5,
+        sepFactor : .001,
+        alignFactor : .3,
         cohesionFactor : .001,
         edgeFactor : .0001,
         minSpeed : .010,
