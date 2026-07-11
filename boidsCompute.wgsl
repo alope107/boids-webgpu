@@ -126,10 +126,19 @@ fn bucketIdx(position : vec2f) -> u32 {
     var avgNeighborVel = vec2f();
     var center = vec2f();
 
+    let myBucketCount = atomicLoad(&buckets[bucketIdx(me.position)].count);
+    let myBucketOffset = buckets[bucketIdx(me.position)].offset;
+
+    // TODO look at neighboring buckets
+    // TODO
+    // TODO
+    // TODO
+
     // TODO: bucketing so this isn't n^2
-    for (var i = 0u; i< boidCount; i++) {
-        if(myIdx == i) {continue;} // don't include self in averages
-        let other = boids[i];
+    //for (var i = 0u; i< boidCount; i++) { // OLD AND LAME
+    for(var i = myBucketOffset; i < myBucketOffset+myBucketCount; i++) {
+        if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
+        let other = boids[bucketedIds[i]];
         let delta = me.position - other.position;
 
         // Check if within sight radius

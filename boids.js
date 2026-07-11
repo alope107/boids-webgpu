@@ -360,20 +360,20 @@ async function main() {
         renderPass.end();
 
         //DISABLE WHEN NOT DEBUG
-        encoder.copyBufferToBuffer(bucketBuffer, 0, debugBucketCountBuffer, 0, bucketBuffer.size);
+        // encoder.copyBufferToBuffer(bucketBuffer, 0, debugBucketCountBuffer, 0, bucketBuffer.size);
 
         const commandBuffer = encoder.finish();
 
         // Actually send the whole shebang to the jeep y you
         device.queue.submit([commandBuffer]);
 
-        if(frameCount % 100 === 0) {
-            await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
-            const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
-            console.log(Array.from(result));
-            debugBucketCountBuffer.unmap();
-        }
-        frameCount++;
+        // if(frameCount % 100 === 0) {
+        //     await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
+        //     const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
+        //     console.log(Array.from(result));
+        //     debugBucketCountBuffer.unmap();
+        // }
+        // frameCount++;
     }
 
     // Resize canvas resolution when screen resized yada yada yada
