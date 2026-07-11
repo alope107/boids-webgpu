@@ -42,7 +42,6 @@ struct Bucket {
     offset : u32 // How many boids are before this bucket?
 } // 8 bytes
 @group(0) @binding(2) var<storage, read_write> buckets : array<Bucket>;
-// @group(0) @binding(3) var<storage, read_write> dorp : array<u32>;
 // @group(0) @binding(3) var<storage, read_write> bucketedIds : array<u32>;
 
 
@@ -68,6 +67,17 @@ fn bucketIdx(position : vec2f) -> u32 {
 
     // linear index
     return row*bucketCols + col;
+}
+
+// Can only be done single threaded???
+@compute @workgroup_size(1) fn bucketOffsets() {
+    _ = uniforms; // dummy
+    _ = boids[0];
+    var offset=0u;
+    for(var i = 0u; i < arrayLength(&buckets); i++) {
+        buckets[i].offset = offset;
+        offset += atomicLoad(&(buckets[i].count)); // TODO: Copy to a non-atomic so boids can be more parallel when doing physics?
+    }
 }
 
 

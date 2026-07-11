@@ -56,7 +56,7 @@ async function main() {
 
     // Our pipelines define how our bind groups are laid out
     // and which shader functions should be called
-    const computeBucketCountsPipeline = device.createComputePipeline({
+    const bucketCountsPipeline = device.createComputePipeline({
         label: 'compute bucketCounts pipeline',
         // Right now 'auto' is letting WebGPU infer the layout of our bind groups
         // Apparently this will cause a performance hit when we try to share a bind group?
@@ -73,7 +73,24 @@ async function main() {
             }
         },
     });
-    const computePhysicsPipeline = device.createComputePipeline({
+    const bucketOffsetsPipeline = device.createComputePipeline({
+        label: 'compute bucketOffsets pipeline',
+        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
+        // Apparently this will cause a performance hit when we try to share a bind group?
+        // We'll leave it as-is for now
+        layout: 'auto', 
+        compute: {
+            module: computeModule,
+            entryPoint: "bucketOffsets",
+            constants: {
+                sightRadius: sightRadius,
+                wall: wall,
+                bucketRows: bucketRows,
+                bucketCols: bucketCols
+            }
+        },
+    });
+    const physicsPipeline = device.createComputePipeline({
         label: 'compute physics pipeline',
         // Right now 'auto' is letting WebGPU infer the layout of our bind groups
         // Apparently this will cause a performance hit when we try to share a bind group?
@@ -185,8 +202,18 @@ async function main() {
     });
 
     const bucketCountBindGroup = device.createBindGroup({
-        label: "compute bind group for physics",
-        layout: computeBucketCountsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        label: "compute bind group for bucketCount",
+        layout: bucketCountsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        entries: [
+            { binding: 0, resource: uniformBuffer },
+            { binding: 1, resource: boidBuffer },
+            { binding: 2, resource: bucketBuffer }
+        ]
+    });
+
+    const bucketOffsetBindGroup = device.createBindGroup({
+        label: "compute bind group for bucketOffset",
+        layout: bucketOffsetsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
@@ -196,7 +223,7 @@ async function main() {
 
     const physicsBindGroup = device.createBindGroup({
         label: "compute bind group for physics",
-        layout: computePhysicsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        layout: physicsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
@@ -230,6 +257,8 @@ async function main() {
     // Set up boids bufer with initial random data
     device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
+    let frameCount = 0;
+
     // to be called every frame
     async function computeAndRender() {
         // Clear out buckets each iteration
@@ -241,16 +270,24 @@ async function main() {
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
         const bucketCountPass = encoder.beginComputePass();
-        bucketCountPass.setPipeline(computeBucketCountsPipeline);
+        bucketCountPass.setPipeline(bucketCountsPipeline);
         bucketCountPass.setBindGroup(0, bucketCountBindGroup);
         bucketCountPass.dispatchWorkgroups(boidCount);
         bucketCountPass.end();
 
         ////////////////////////////
 
-        // in this pass we will encode all of the suff we set up for the compute
+        const bucketOffsetPass = encoder.beginComputePass();
+        bucketOffsetPass.setPipeline(bucketOffsetsPipeline);
+        bucketOffsetPass.setBindGroup(0, bucketOffsetBindGroup);
+        bucketOffsetPass.dispatchWorkgroups(1); // I think this has to be done single threaded :(
+        bucketOffsetPass.end();
+
+        ///////////////////////////
+
+        // in this pass we will encode all of the suff we set up for the physics
         const computePhysicsPass = encoder.beginComputePass();
-        computePhysicsPass.setPipeline(computePhysicsPipeline);
+        computePhysicsPass.setPipeline(physicsPipeline);
         computePhysicsPass.setBindGroup(0, physicsBindGroup);
 
         // if this changes, it needs to be changed in the shader as well
@@ -270,7 +307,7 @@ async function main() {
         renderPass.draw(3, boidCount); // draw 9 vertices. We will later update this to 3*boidCount
         renderPass.end();
 
-
+        //DISABLE WHEN NOT DEBUG
         encoder.copyBufferToBuffer(bucketBuffer, 0, debugBucketCountBuffer, 0, bucketBuffer.size);
 
         const commandBuffer = encoder.finish();
@@ -278,10 +315,13 @@ async function main() {
         // Actually send the whole shebang to the jeep y you
         device.queue.submit([commandBuffer]);
 
-        // await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
-        // const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
-        // console.log(result);
-        // debugBucketCountBuffer.unmap();
+        if(frameCount % 100 === 0) {
+            await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
+            const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
+            console.log(Array.from(result));
+            debugBucketCountBuffer.unmap();
+        }
+        frameCount++;
     }
 
     // Resize canvas resolution when screen resized yada yada yada
