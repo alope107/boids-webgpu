@@ -1,19 +1,8 @@
 import { configFromQueryParams } from "./config.js";
 import loadFiles from "./loadFiles.js";
+import dispatchCount from "./workgroups.js";
 
 async function main(config) {
-    // Ensure that buckets are smaller than the sightRadius
-    // (field spans from -wall to wall (length of 2*wall))
-    const fieldSideLength = 2 * config.overrides.wall;
-    const bucketRows = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
-    const bucketCols = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
-
-    const computeOverrides = {
-        ...config.overrides,
-        bucketRows,
-        bucketCols
-    };
-
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter({
         powerPreference: 'high-performance', 
@@ -44,6 +33,19 @@ async function main(config) {
         label: "render boids shader",
         code: renderShaderCode
     });
+
+    // Compute needed overrides
+    // Ensure that buckets are smaller than the sightRadius
+    // (field spans from -wall to wall (length of 2*wall))
+    const fieldSideLength = 2 * config.overrides.wall;
+    const bucketRows = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
+    const bucketCols = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
+
+    const computeOverrides = {
+        ...config.overrides,
+        bucketRows,
+        bucketCols
+    };
 
     // Our pipelines define how our bind groups are laid out
     // and which shader functions should be called
@@ -132,7 +134,6 @@ async function main(config) {
         velocity: new Float32Array(boidValues, 8),
         color: new Float32Array(boidValues, 16),
     };
-    let jsBoids = [];
 
     let rand = (min, max) => Math.random() * (max-min) + min; // random in range
     let randInside = () => rand(-1, 1); // random inside vertex coordinate space
@@ -150,8 +151,6 @@ async function main(config) {
                GPUBufferUsage.COPY_DST |
                GPUBufferUsage.VERTEX
     });
-
-    
 
     const bucketStructSize = 8;
     const u32Count = bucketStructSize / 4;
@@ -174,10 +173,10 @@ async function main(config) {
                GPUBufferUsage.COPY_DST 
     });
 
-    // TODO: Unify these bind groups!
     const bucketCountBindGroup = device.createBindGroup({
         label: "compute bind group for bucketCount",
         layout: bucketCountsPipeline.getBindGroupLayout(0), 
+        entries: [
             { binding: 1, resource: boidBuffer },
             { binding: 2, resource: bucketBuffer },
         ]
@@ -247,11 +246,12 @@ async function main(config) {
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
+        /////////////////////////////
+
         const bucketCountPass = encoder.beginComputePass();
         bucketCountPass.setPipeline(bucketCountsPipeline);
         bucketCountPass.setBindGroup(0, bucketCountBindGroup);
-        const bucketCountWorkgroupSize = [8, 8, 1];
-        bucketCountPass.dispatchWorkgroups(Math.ceil(config.boidCount/(bucketCountWorkgroupSize[0]*bucketCountWorkgroupSize[1]*bucketCountWorkgroupSize[2])));
+        bucketCountPass.dispatchWorkgroups(dispatchCount(config.boidCount, [8, 8, 1]));
         bucketCountPass.end();
 
         ////////////////////////////
@@ -267,10 +267,7 @@ async function main(config) {
         const bucketedIdsPass = encoder.beginComputePass();
         bucketedIdsPass.setPipeline(bucketedIdsPipeline);
         bucketedIdsPass.setBindGroup(0, bucketedIdsBindGroup);
-
-        const bucketedIdsWorkgroupSize = [8, 8, 1];
-
-        bucketedIdsPass.dispatchWorkgroups(Math.ceil(bucketCount/(bucketedIdsWorkgroupSize[0]*bucketedIdsWorkgroupSize[1]*bucketedIdsWorkgroupSize[2]))); 
+        bucketedIdsPass.dispatchWorkgroups(dispatchCount(bucketCount, [8, 8, 1])); 
         bucketedIdsPass.end();
 
         ///////////////////////////
@@ -279,12 +276,10 @@ async function main(config) {
         const computePhysicsPass = encoder.beginComputePass();
         computePhysicsPass.setPipeline(physicsPipeline);
         computePhysicsPass.setBindGroup(0, physicsBindGroup);
-
-        // if this changes, it needs to be changed in the shader as well
-        const physicsWorkgroupSize = [8, 8, 1];
-
-        computePhysicsPass.dispatchWorkgroups(Math.ceil(config.boidCount/(physicsWorkgroupSize[0]*physicsWorkgroupSize[1]*physicsWorkgroupSize[2])));
+        computePhysicsPass.dispatchWorkgroups(dispatchCount(config.boidCount, [8, 8, 1]));
         computePhysicsPass.end();
+
+        ///////////////////////////
 
         // Canvas has a new texture each frame, so we need to make sure we're drawing
         // to the one for the current frame.
@@ -316,6 +311,7 @@ async function main(config) {
     });
     observer.observe(canvas);
 
+    // Todo: multiple pointers?
     let pointerX = 0;
     let pointerY = 0;
     let pointerHeld = 0;
