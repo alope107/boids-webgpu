@@ -6,6 +6,7 @@ async function main(config) {
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter({
         powerPreference: 'high-performance', 
+        //requiredFeatures: ['timestamp-query'],
     });
     const device = await adapter?.requestDevice();
     if(!device) {
@@ -243,13 +244,13 @@ async function main(config) {
     // Set up boids bufer with initial random data
     device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
+    // Clear out buckets bwfore first iteration
+    bucketValues = new Uint32Array(bucketCount*u32Count);
+    device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
+
+
     // to be called every frame
     async function computeAndRender() {
-        // Clear out buckets each iteration
-        // TODO: Explore doing this in a shader instead
-        bucketValues = new Uint32Array(bucketCount*u32Count);
-        device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
-
         // Will hold all of the commands to be submitted to the GPU
         const encoder = device.createCommandEncoder({ label: "encoder" });
 
@@ -341,6 +342,7 @@ async function main(config) {
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
         computeAndRender();
+        
         requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

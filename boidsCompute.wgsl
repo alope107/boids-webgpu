@@ -74,7 +74,8 @@ fn bucketIdx(position : vec2f) -> u32 {
     var offset=0u;
     for(var i = 0u; i < arrayLength(&buckets); i++) {
         buckets[i].offset = offset;
-        buckets[i].count = atomicLoad(&(buckets[i].atomicCount));
+        // Store the count in a read friendly format and clear the atomic counter for the next iteration
+        buckets[i].count = atomicExchange(&(buckets[i].atomicCount), 0);
         offset += buckets[i].count;
     }
 }
@@ -99,12 +100,11 @@ fn bucketIdx(position : vec2f) -> u32 {
 
 @compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
     let myIdx = id;
+    let boidCount = arrayLength(&boids);
     // If we have more threads than boids, the extra threads don't need to do anything
-    if(myIdx >= arrayLength(&boids)) { return; }
+    if(myIdx >= boidCount) { return; }
 
     let me = boids[myIdx]; // Maaaaybe pointer would be better?
-    let boidCount = arrayLength(&boids);
-
 
     var neighborCount = 0u;
     var sepVec = vec2f();
@@ -136,12 +136,12 @@ fn bucketIdx(position : vec2f) -> u32 {
         let otherBucketCount = buckets[bucketCoordToIdx(otherBucketCoord)].count;
         let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
 
+
         for(var i = otherBucketOffset; i < otherBucketOffset+otherBucketCount; i++) {
             if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
             let other = boids[bucketedIds[i]];
             let delta = me.position - other.position;
 
-            // TODO: squared distances
             let squaredDist = dot(delta, delta);
 
             // TODO: precompute squared radii?
@@ -173,8 +173,8 @@ fn bucketIdx(position : vec2f) -> u32 {
     if(uniforms.pointerHeld > 0) {
         let delta = me.position - uniforms.pointerPos;
         let deltaLen = length(delta);
-        if(deltaLen < pointerRadius) {
-            newVel += delta / length(delta) * pointerPush; 
+        if(deltaLen > 0 && deltaLen < pointerRadius) {
+            newVel += delta / deltaLen * pointerPush; 
         }
     }
 
