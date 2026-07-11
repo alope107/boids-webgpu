@@ -90,6 +90,23 @@ async function main() {
             }
         },
     });
+    const bucketedIdsPipeline = device.createComputePipeline({
+        label: 'compute bucketedIds pipeline',
+        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
+        // Apparently this will cause a performance hit when we try to share a bind group?
+        // We'll leave it as-is for now
+        layout: 'auto', 
+        compute: {
+            module: computeModule,
+            entryPoint: "bucketBoids",
+            constants: {
+                sightRadius: sightRadius,
+                wall: wall,
+                bucketRows: bucketRows,
+                bucketCols: bucketCols
+            }
+        },
+    });
     const physicsPipeline = device.createComputePipeline({
         label: 'compute physics pipeline',
         // Right now 'auto' is letting WebGPU infer the layout of our bind groups
@@ -193,6 +210,16 @@ async function main() {
                GPUBufferUsage.COPY_SRC // Copy src can be removed later, here for debuggling purposes
     });
 
+    const bucketedIds = new Uint32Array(boidCount);
+
+    const bucketedIdsBuffer = device.createBuffer({
+        label: "bucketedIds buffer",
+        size: bucketedIds.byteLength,
+        usage: GPUBufferUsage.STORAGE |
+               GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.COPY_SRC // Copy src can be removed later, here for debuggling purposes
+    });
+
     const debugBucketCountBuffer = device.createBuffer({
         label: "debug bucket count buffer",
         size: bucketValues.byteLength,
@@ -207,7 +234,8 @@ async function main() {
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
-            { binding: 2, resource: bucketBuffer }
+            { binding: 2, resource: bucketBuffer },
+            { binding: 3, resource: bucketedIdsBuffer },
         ]
     });
 
@@ -217,7 +245,19 @@ async function main() {
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
-            { binding: 2, resource: bucketBuffer }
+            { binding: 2, resource: bucketBuffer },
+            { binding: 3, resource: bucketedIdsBuffer },
+        ]
+    });
+
+    const bucketedIdsBindGroup = device.createBindGroup({
+        label: "compute bind group for bucketOffset",
+        layout: bucketedIdsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        entries: [
+            { binding: 0, resource: uniformBuffer },
+            { binding: 1, resource: boidBuffer },
+            { binding: 2, resource: bucketBuffer },
+            { binding: 3, resource: bucketedIdsBuffer },
         ]
     });
 
@@ -227,7 +267,8 @@ async function main() {
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
-            { binding: 2, resource: bucketBuffer }
+            { binding: 2, resource: bucketBuffer },
+            { binding: 3, resource: bucketedIdsBuffer },
         ]
     });
 
@@ -285,15 +326,26 @@ async function main() {
 
         ///////////////////////////
 
+        const bucketedIdsPass = encoder.beginComputePass();
+        bucketedIdsPass.setPipeline(bucketedIdsPipeline);
+        bucketedIdsPass.setBindGroup(0, bucketedIdsBindGroup);
+
+        const bucketedIdsWorkgroupSize = [8, 8, 1];
+
+        bucketedIdsPass.dispatchWorkgroups(Math.ceil(bucketCount/(bucketedIdsWorkgroupSize[0]*bucketedIdsWorkgroupSize[1]*bucketedIdsWorkgroupSize[2]))); 
+        bucketedIdsPass.end();
+
+        ///////////////////////////
+
         // in this pass we will encode all of the suff we set up for the physics
         const computePhysicsPass = encoder.beginComputePass();
         computePhysicsPass.setPipeline(physicsPipeline);
         computePhysicsPass.setBindGroup(0, physicsBindGroup);
 
         // if this changes, it needs to be changed in the shader as well
-        let workgroupSize = [8, 8, 1];
+        const physicsWorkgroupSize = [8, 8, 1];
 
-        computePhysicsPass.dispatchWorkgroups(Math.ceil(boidCount/(workgroupSize[0]*workgroupSize[1]*workgroupSize[2])));
+        computePhysicsPass.dispatchWorkgroups(Math.ceil(boidCount/(physicsWorkgroupSize[0]*physicsWorkgroupSize[1]*physicsWorkgroupSize[2])));
         computePhysicsPass.end();
 
         // I think the Canvas has a new texture each frame, so we need to make sure we're drawing
