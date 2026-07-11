@@ -17,12 +17,12 @@ struct Uniforms {
 
 // tuneable! (maybe set as constants?)
 override sightRadius : f32; // set exclusively in JS because needed for bucket calc
-override sepFactor = .01;
-override alignFactor = .5;
+override sepFactor = .0001;
+override alignFactor = .05;
 override cohesionFactor = .001;
 override edgeFactor = .0001;
 override wall : f32; // how far off the edge of the screen the boid can get before wrapping
-override minSpeed = .010;
+override minSpeed = .00010;
 override speedUp = 1.01; // if below minSpeed, accelerate by speedUP
 override pointerRadius = .2;
 override pointerPush = .002;
