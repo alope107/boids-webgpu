@@ -19,7 +19,9 @@ async function main(config) {
     const colorFunction = colorMap[config.color] || colorMap.confetti;
 
     // Check webGPU support and get device
-    const adapter = await navigator.gpu?.requestAdapter();
+    const adapter = await navigator.gpu?.requestAdapter({
+        powerPreference: 'high-performance', 
+    });
     const device = await adapter?.requestDevice();
     if(!device) {
         console.error("No WebGPU compatible device found");
