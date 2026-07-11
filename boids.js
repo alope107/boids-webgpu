@@ -1,29 +1,22 @@
-async function main() {
-    // Tunables!
-    let computeOverrides = {
-        sightRadius : .04,
-        wall : 1.05,
-        sepFactor : .01,
-        alignFactor : .5,
-        cohesionFactor : .001,
-        edgeFactor : .0001,
-        minSpeed : .010,
-        speedUp : 1.01, // if below minSpeed, accelerate by speedUp
-        pointerRadius : .2,
-        pointerPush : .002,
-    };
-
+async function main(config) {
     // Ensure that buckets are smaller than the sightRadius
     // (field spans from -wall to wall (length of 2*wall))
-    const fieldSideLength = 2 * computeOverrides.wall;
-    const bucketRows = Math.max(Math.ceil(fieldSideLength/computeOverrides.sightRadius)-1, 1);
-    const bucketCols = Math.max(Math.ceil(fieldSideLength/computeOverrides.sightRadius)-1, 1);
+    const fieldSideLength = 2 * config.overrides.wall;
+    const bucketRows = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
+    const bucketCols = Math.max(Math.ceil(fieldSideLength/config.overrides.sightRadius)-1, 1);
 
-    computeOverrides = {
-        ...computeOverrides,
+    const computeOverrides = {
+        ...config.overrides,
         bucketRows,
         bucketCols
     };
+
+    const colorMap = {
+        confetti: () => [Math.random(), Math.random(), Math.random(), 1.0],
+        blue: () => [0, 0, 1., 1.0]
+    };
+
+    const colorFunction = colorMap[config.color] || colorMap.confetti;
 
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter();
@@ -147,9 +140,7 @@ async function main() {
     // Changing boid struct? All this needs to change!
     const boidStructSize = 32;
     const floatCount = boidStructSize / 4;
-    // Gets boidCount from "count" queryParam if present, else defaults to 1000
-    const boidCount = new URLSearchParams(window.location.search).get("count") || 1000;
-    const boidValues = new ArrayBuffer(boidCount * boidStructSize);
+    const boidValues = new ArrayBuffer(config.boidCount * boidStructSize);
     // Views can be recomputed here: https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
     const boidViews = {
         position: new Float32Array(boidValues, 0),
@@ -161,11 +152,10 @@ async function main() {
     let rand = (min, max) => Math.random() * (max-min) + min; // random in range
     let randInside = () => rand(-1, 1); // random inside vertex coordinate space
 
-    for(let i = 0; i < boidCount; i++) {
+    for(let i = 0; i < config.boidCount; i++) {
         boidViews.position.set([randInside(), randInside()], i*floatCount);
         boidViews.velocity.set([randInside()*.05, randInside()*.05], i*floatCount);
-        //boidViews.color.set([Math.random(), Math.random(), Math.random(), 1.0], i*floatCount); //confetti
-        boidViews.color.set([0, 0, 1., 1.0], i*floatCount); // blue
+        boidViews.color.set(colorFunction(), i*floatCount); // blue
     }
 
     const boidBuffer = device.createBuffer({
@@ -190,7 +180,7 @@ async function main() {
                GPUBufferUsage.COPY_DST 
     });
 
-    const bucketedIds = new Uint32Array(boidCount);
+    const bucketedIds = new Uint32Array(config.boidCount);
 
     const bucketedIdsBuffer = device.createBuffer({
         label: "bucketedIds buffer",
@@ -282,7 +272,7 @@ async function main() {
         const bucketCountPass = encoder.beginComputePass();
         bucketCountPass.setPipeline(bucketCountsPipeline);
         bucketCountPass.setBindGroup(0, bucketCountBindGroup);
-        bucketCountPass.dispatchWorkgroups(boidCount);
+        bucketCountPass.dispatchWorkgroups(config.boidCount);
         bucketCountPass.end();
 
         ////////////////////////////
@@ -314,7 +304,7 @@ async function main() {
         // if this changes, it needs to be changed in the shader as well
         const physicsWorkgroupSize = [8, 8, 1];
 
-        computePhysicsPass.dispatchWorkgroups(Math.ceil(boidCount/(physicsWorkgroupSize[0]*physicsWorkgroupSize[1]*physicsWorkgroupSize[2])));
+        computePhysicsPass.dispatchWorkgroups(Math.ceil(config.boidCount/(physicsWorkgroupSize[0]*physicsWorkgroupSize[1]*physicsWorkgroupSize[2])));
         computePhysicsPass.end();
 
         // Canvas has a new texture each frame, so we need to make sure we're drawing
@@ -325,7 +315,7 @@ async function main() {
         const renderPass = encoder.beginRenderPass(renderPassDescriptor);
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0, renderBindGroup);
-        renderPass.draw(3, boidCount); // 3 vertices per boid
+        renderPass.draw(3, config.boidCount); // 3 vertices per boid
         renderPass.end();
 
         const commandBuffer = encoder.finish();
@@ -374,4 +364,39 @@ async function main() {
     requestAnimationFrame(frame);
 }
 
-main();
+// Tunables!
+const defaultConfig = {
+    boidCount : 1000,
+    color: "confetti",
+    overrides: {
+        sightRadius : .04,
+        wall : 1.05,
+        sepFactor : .01,
+        alignFactor : .5,
+        cohesionFactor : .001,
+        edgeFactor : .0001,
+        minSpeed : .010,
+        speedUp : 1.01, // if below minSpeed, accelerate by speedUp
+        pointerRadius : .2,
+        pointerPush : .002,
+    }
+};
+
+const configFromQueryParams = (defaultConfig) => {
+    const params = new URLSearchParams(window.location.search);
+
+    const overrides = {};
+    for(const [tunable, defaultVal] of Object.entries(defaultConfig.overrides)) {
+        overrides[tunable] = params.get(tunable) || defaultVal;
+    }
+    
+    const conf = {
+        boidCount : params.get("count") || defaultConfig.boidCount,
+        color: params.get("color") || defaultConfig.color,
+        overrides
+    };
+    console.log(conf);
+    return conf;
+};
+
+main(configFromQueryParams(defaultConfig));

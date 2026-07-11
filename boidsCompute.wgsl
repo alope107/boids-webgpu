@@ -1,3 +1,17 @@
+// tuneable! (maybe set as constants?)
+override sightRadius : f32; // set exclusively in JS because needed for bucket calc
+override sepFactor : f32;
+override alignFactor : f32;
+override cohesionFactor : f32;
+override edgeFactor : f32;
+override wall : f32; // how far off the edge of the screen the boid can get before wrapping
+override minSpeed : f32;
+override speedUp : f32; // if below minSpeed, accelerate by speedUP
+override pointerRadius : f32;
+override pointerPush : f32;
+override bucketRows : u32;
+override bucketCols : u32;
+
 // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
 // CHANGE IT IN THE OTHER SHADER TOO
 struct Boid {
@@ -15,28 +29,15 @@ struct Uniforms {
     time : f32 // 4 bytes
 } // total: 16 bytes
 
-// tuneable! (maybe set as constants?)
-override sightRadius : f32; // set exclusively in JS because needed for bucket calc
-override sepFactor : f32;
-override alignFactor : f32;
-override cohesionFactor : f32;
-override edgeFactor : f32;
-override wall : f32; // how far off the edge of the screen the boid can get before wrapping
-override minSpeed : f32;
-override speedUp : f32; // if below minSpeed, accelerate by speedUP
-override pointerRadius : f32;
-override pointerPush : f32;
-
-@group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
-
-override bucketRows : u32;
-override bucketCols : u32;
-
+// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
 struct Bucket {
     count : atomic<u32>, // How many boids are in this bucket?
     offset : u32 // How many boids are before this bucket?
 } // 8 bytes
+
+
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
 @group(0) @binding(2) var<storage, read_write> buckets : array<Bucket>;
 @group(0) @binding(3) var<storage, read_write> bucketedIds : array<u32>;
 
@@ -44,7 +45,7 @@ struct Bucket {
 // // TODO: explore other clearing options or right workgroup sizes
 
 // Step 1: Copy in empty buckets from CPU (can switch to actual GPU pass if needed, but this should be quite small)
-// NEEDS TO BE DONE IS JS
+// CURRENTLY DONE IN JS
 
 // Step 2: CountBuckets
 
@@ -146,8 +147,10 @@ fn bucketIdx(position : vec2f) -> u32 {
     for(var d = 0u; d < 9; d++) {
         let otherBucketCoordi = vec2i(myBucketCoord) + bucketDeltas[d];
         if(otherBucketCoordi.x < 0 || otherBucketCoordi.y < 0) {continue;}
+
         let otherBucketCoord = vec2u(otherBucketCoordi);
         if(otherBucketCoord.x >= bucketRows || otherBucketCoord.y >= bucketCols ) {continue;}
+
         let otherBucketCount = atomicLoad(&buckets[bucketCoordToIdx(otherBucketCoord)].count);
         let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
 
@@ -162,12 +165,11 @@ fn bucketIdx(position : vec2f) -> u32 {
             if(dist > sightRadius) {continue;}
             neighborCount++;
 
-            sepVec += ((sightRadius -dist)/dist) * delta;
-            // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
+            sepVec += ((sightRadius - dist)/dist) * delta;
+            //sepVec += delta; // this is more the classic boids way, but has caused problems for me?
             avgNeighborVel += other.velocity;
 
             center += other.position;
-            
         }
     }
    
@@ -195,7 +197,6 @@ fn bucketIdx(position : vec2f) -> u32 {
 
     boids[myIdx].velocity = newVel;
     boids[myIdx].position = me.position + newVel;
-
 
     // Wrap (candidate for separate function? If so, pass boids pointer)
     if(boids[myIdx].position.x > wall) {
