@@ -152,7 +152,14 @@ async function main(config) {
                GPUBufferUsage.VERTEX
     });
 
-    const bucketStructSize = 8;
+    // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+    // struct Bucket {
+    //     atomicCount : atomic<u32>, // How many boids are in this bucket? (atomic as it's collab built)
+    //     count: u32, // non-atomic for reading
+    //     offset : u32 // How many boids are before this bucket?
+    // } // 12 bytes
+
+    const bucketStructSize = 12;
     const u32Count = bucketStructSize / 4;
     const bucketCount = bucketRows * bucketCols;
     let bucketValues = new Uint32Array(bucketCount*u32Count);

@@ -31,9 +31,10 @@ struct Uniforms {
 
 // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
 struct Bucket {
-    count : atomic<u32>, // How many boids are in this bucket?
+    atomicCount : atomic<u32>, // How many boids are in this bucket? (atomic as it's collab built)
+    count: u32, // non-atomic for reading
     offset : u32 // How many boids are before this bucket?
-} // 8 bytes
+} // 12 bytes
 
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -50,7 +51,7 @@ struct Bucket {
 @compute @workgroup_size(8, 8, 1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
     if(id >= arrayLength(&boids)) { return; }
     let bucketId = bucketIdx(boids[id].position);
-    atomicAdd(&(buckets[bucketId].count), 1);
+    atomicAdd(&(buckets[bucketId].atomicCount), 1);
 }
 
 fn bucketCoord(position : vec2f) -> vec2u {
@@ -73,7 +74,8 @@ fn bucketIdx(position : vec2f) -> u32 {
     var offset=0u;
     for(var i = 0u; i < arrayLength(&buckets); i++) {
         buckets[i].offset = offset;
-        offset += atomicLoad(&(buckets[i].count)); // TODO: Copy to a non-atomic so boids can be more parallel when doing physics?
+        buckets[i].count = atomicLoad(&(buckets[i].atomicCount));
+        offset += buckets[i].count;
     }
 }
 
@@ -131,7 +133,7 @@ fn bucketIdx(position : vec2f) -> u32 {
         let otherBucketCoord = vec2u(otherBucketCoordi);
         if(otherBucketCoord.x >= bucketRows || otherBucketCoord.y >= bucketCols ) {continue;}
 
-        let otherBucketCount = atomicLoad(&buckets[bucketCoordToIdx(otherBucketCoord)].count);
+        let otherBucketCount = buckets[bucketCoordToIdx(otherBucketCoord)].count;
         let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
 
         for(var i = otherBucketOffset; i < otherBucketOffset+otherBucketCount; i++) {
