@@ -61,14 +61,22 @@ struct Bucket {
     atomicAdd(&(buckets[bucketId].count), 1);
 }
 
-fn bucketIdx(position : vec2f) -> u32 {
-    // buckets extend from -wall to +wall
-    let col = u32(f32(bucketCols) * ((position.x / (2.*wall)) + .5));
-    let row = u32(f32(bucketRows) * ((position.y / (2.*wall)) + .5));
-
-    // linear index
-    return row*bucketCols + col;
+fn bucketCoord(position : vec2f) -> vec2u {
+    return vec2u(
+        u32(f32(bucketRows) * ((position.y / (2.*wall)) + .5)),
+        u32(f32(bucketCols) * ((position.x / (2.*wall)) + .5))
+    );
 }
+
+fn bucketCoordToIdx(rowCol : vec2u) -> u32 {
+    return rowCol.x*bucketCols + rowCol.y;
+}
+
+fn bucketIdx(position : vec2f) -> u32 {
+    return bucketCoordToIdx(bucketCoord(position));
+}
+
+
 
 // Can only be done single threaded???
 @compute @workgroup_size(1) fn bucketOffsets() {
@@ -126,33 +134,72 @@ fn bucketIdx(position : vec2f) -> u32 {
     var avgNeighborVel = vec2f();
     var center = vec2f();
 
-    let myBucketCount = atomicLoad(&buckets[bucketIdx(me.position)].count);
-    let myBucketOffset = buckets[bucketIdx(me.position)].offset;
+    // TODO: Store this elsewhere?
+    let bucketDeltas = array(
+        vec2i(-1, -1),
+        vec2i(-1, 0),
+        vec2i(-1, 1),
+        vec2i(0, -1),
+        vec2i(0, 0),
+        vec2i(0, 1),
+        vec2i(1, -1),
+        vec2i(1, 0),
+        vec2i(1, 1),
+    ); // 8 adjacent and own bucket
 
-    // TODO look at neighboring buckets
-    // TODO
-    // TODO
-    // TODO
+    let myBucketCoord = bucketCoord(me.position);
+
+    for(var d = 0u; d < 9; d++) {
+        let otherBucketCoordi = vec2i(myBucketCoord) + bucketDeltas[d];
+        if(otherBucketCoordi.x < 0 || otherBucketCoordi.y < 0) {continue;}
+        let otherBucketCoord = vec2u(otherBucketCoordi);
+        if(otherBucketCoord.x >= 0 && otherBucketCoord.x < bucketRows &&
+           otherBucketCoord.y >= 0 && otherBucketCoord.y < bucketCols ) {
+            let otherBucketCount = atomicLoad(&buckets[bucketCoordToIdx(otherBucketCoord)].count);
+            let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
+
+            for(var i = otherBucketOffset; i < otherBucketOffset+otherBucketCount; i++) {
+                if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
+                let other = boids[bucketedIds[i]];
+                let delta = me.position - other.position;
+
+                // Check if within sight radius
+                // Could prob be done faster comparing squared distances
+                let dist = length(delta);
+                if(dist > sightRadius) {continue;}
+                neighborCount++;
+
+                sepVec += ((sightRadius -dist)/dist) * delta;
+                // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
+                avgNeighborVel += other.velocity;
+
+                center += other.position;
+            }
+        }
+    }
+    // let myBucketCount = atomicLoad(&buckets[bucketIdx(me.position)].count);
+    // let myBucketOffset = buckets[bucketIdx(me.position)].offset;
+
 
     // TODO: bucketing so this isn't n^2
     //for (var i = 0u; i< boidCount; i++) { // OLD AND LAME
-    for(var i = myBucketOffset; i < myBucketOffset+myBucketCount; i++) {
-        if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
-        let other = boids[bucketedIds[i]];
-        let delta = me.position - other.position;
+    // for(var i = myBucketOffset; i < myBucketOffset+myBucketCount; i++) {
+    //     if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
+    //     let other = boids[bucketedIds[i]];
+    //     let delta = me.position - other.position;
 
-        // Check if within sight radius
-        // Could prob be done faster comparing squared distances
-        let dist = length(delta);
-        if(dist > sightRadius) {continue;}
-        neighborCount++;
+    //     // Check if within sight radius
+    //     // Could prob be done faster comparing squared distances
+    //     let dist = length(delta);
+    //     if(dist > sightRadius) {continue;}
+    //     neighborCount++;
 
-        sepVec += ((sightRadius -dist)/dist) * delta;
-        // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
-        avgNeighborVel += other.velocity;
+    //     sepVec += ((sightRadius -dist)/dist) * delta;
+    //     // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
+    //     avgNeighborVel += other.velocity;
 
-        center += other.position;
-    }
+    //     center += other.position;
+    // }
 
     var newVel = me.velocity;
     
