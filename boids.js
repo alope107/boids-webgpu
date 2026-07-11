@@ -6,7 +6,6 @@ async function main() {
     // Ensure that buckets are smaller than the sightRadius
     // (field spans from -wall to wall (length of 2*wall))
     const fieldSideLength = 2 * wall;
-    // TODO set back after bucket count validated
     const bucketRows = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
     const bucketCols = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
 
@@ -22,7 +21,6 @@ async function main() {
     const canvas = document.getElementById("renderTarget");
 
     // Write in the way the user agent says the canvas likes
-    // I think this is things like RGB vs BGR, bpp and the like
     const ctx = canvas.getContext("webgpu");
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     ctx.configure({
@@ -31,7 +29,6 @@ async function main() {
     });
 
     // load shaders from wgsl files
-    // Probably could do this all within one Promise.all?
     const [computeCodeResp, renderCodeResp] = await Promise.all([
         fetch("./boidsCompute.wgsl"),
         fetch("./boidsRender.wgsl")
@@ -58,14 +55,12 @@ async function main() {
     // and which shader functions should be called
     const bucketCountsPipeline = device.createComputePipeline({
         label: 'compute bucketCounts pipeline',
-        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
-        // Apparently this will cause a performance hit when we try to share a bind group?
-        // We'll leave it as-is for now
+        // TODO: Set up bind group manually because it's shared across the different compute stages
         layout: 'auto', 
         compute: {
             module: computeModule,
-            entryPoint: "countBuckets",
-            constants: {
+            entryPoint: "countBuckets", // Counts how many boids in each bucket
+            constants: { // TODO: common constants, and all
                 sightRadius: sightRadius,
                 wall: wall,
                 bucketRows: bucketRows,
@@ -75,13 +70,10 @@ async function main() {
     });
     const bucketOffsetsPipeline = device.createComputePipeline({
         label: 'compute bucketOffsets pipeline',
-        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
-        // Apparently this will cause a performance hit when we try to share a bind group?
-        // We'll leave it as-is for now
         layout: 'auto', 
         compute: {
             module: computeModule,
-            entryPoint: "bucketOffsets",
+            entryPoint: "bucketOffsets", // Calculate where in the ids array each bucket will start/end
             constants: {
                 sightRadius: sightRadius,
                 wall: wall,
@@ -92,13 +84,10 @@ async function main() {
     });
     const bucketedIdsPipeline = device.createComputePipeline({
         label: 'compute bucketedIds pipeline',
-        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
-        // Apparently this will cause a performance hit when we try to share a bind group?
-        // We'll leave it as-is for now
         layout: 'auto', 
         compute: {
             module: computeModule,
-            entryPoint: "bucketBoids",
+            entryPoint: "bucketBoids", // place boid ids into buckets
             constants: {
                 sightRadius: sightRadius,
                 wall: wall,
@@ -109,9 +98,6 @@ async function main() {
     });
     const physicsPipeline = device.createComputePipeline({
         label: 'compute physics pipeline',
-        // Right now 'auto' is letting WebGPU infer the layout of our bind groups
-        // Apparently this will cause a performance hit when we try to share a bind group?
-        // We'll leave it as-is for now
         layout: 'auto', 
         compute: {
             module: computeModule,
@@ -122,12 +108,11 @@ async function main() {
                 bucketRows: bucketRows,
                 bucketCols: bucketCols
             }
-            //entryPoint: "updatePositionMouse" // swap to me if u want mouse attract instead of actual boids
         },
     });
     const renderPipeline = device.createRenderPipeline({
         label: 'render boids pipeline',
-        layout: 'auto', // ditto on the auto layout from above
+        layout: 'auto', // auto should be fine, we want different buffers than the compute
         vertex: {
             entryPoint: 'boidVertex',
             module: renderModule
@@ -206,8 +191,7 @@ async function main() {
         label: "bucket buffer",
         size: bucketValues.byteLength,
         usage: GPUBufferUsage.STORAGE |
-               GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.COPY_SRC // Copy src can be removed later, here for debuggling purposes
+               GPUBufferUsage.COPY_DST 
     });
 
     const bucketedIds = new Uint32Array(boidCount);
@@ -216,18 +200,10 @@ async function main() {
         label: "bucketedIds buffer",
         size: bucketedIds.byteLength,
         usage: GPUBufferUsage.STORAGE |
-               GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.COPY_SRC // Copy src can be removed later, here for debuggling purposes
+               GPUBufferUsage.COPY_DST 
     });
 
-    const debugBucketCountBuffer = device.createBuffer({
-        label: "debug bucket count buffer",
-        size: bucketValues.byteLength,
-        usage: 
-               GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.MAP_READ 
-    });
-
+    // TODO: Unify these bind groups!
     const bucketCountBindGroup = device.createBindGroup({
         label: "compute bind group for bucketCount",
         layout: bucketCountsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
@@ -287,7 +263,6 @@ async function main() {
         label: "canvas renderPass",
         colorAttachments: [ 
             {
-                //clearValue: [.3, .3, .3, 1], // grey clear
                 clearValue: [.0, .0, .0, 1], //black clear
                 loadOp: 'clear', // clear the screen before starting the render pass
                 storeOp: 'store' // actually save to the screen. (we would use discard if this was only an intermediate step)
@@ -298,12 +273,10 @@ async function main() {
     // Set up boids bufer with initial random data
     device.queue.writeBuffer(boidBuffer, 0, boidValues);
 
-    let frameCount = 0;
-
     // to be called every frame
     async function computeAndRender() {
         // Clear out buckets each iteration
-        // TODO: Explore maybe doing this in a shader instead?... it's small though
+        // TODO: Explore doing this in a shader instead
         bucketValues = new Uint32Array(bucketCount*u32Count);
         device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
 
@@ -348,32 +321,21 @@ async function main() {
         computePhysicsPass.dispatchWorkgroups(Math.ceil(boidCount/(physicsWorkgroupSize[0]*physicsWorkgroupSize[1]*physicsWorkgroupSize[2])));
         computePhysicsPass.end();
 
-        // I think the Canvas has a new texture each frame, so we need to make sure we're drawing
-        // to the one for the current frame. Idk tho!
+        // Canvas has a new texture each frame, so we need to make sure we're drawing
+        // to the one for the current frame.
         renderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
 
         // let's do another pass for the rendering~
         const renderPass = encoder.beginRenderPass(renderPassDescriptor);
         renderPass.setPipeline(renderPipeline);
         renderPass.setBindGroup(0, renderBindGroup);
-        renderPass.draw(3, boidCount); // draw 9 vertices. We will later update this to 3*boidCount
+        renderPass.draw(3, boidCount); // 3 vertices per boid
         renderPass.end();
-
-        //DISABLE WHEN NOT DEBUG
-        // encoder.copyBufferToBuffer(bucketBuffer, 0, debugBucketCountBuffer, 0, bucketBuffer.size);
 
         const commandBuffer = encoder.finish();
 
         // Actually send the whole shebang to the jeep y you
         device.queue.submit([commandBuffer]);
-
-        // if(frameCount % 100 === 0) {
-        //     await debugBucketCountBuffer.mapAsync(GPUMapMode.READ);
-        //     const result = new Uint32Array(debugBucketCountBuffer.getMappedRange());
-        //     console.log(Array.from(result));
-        //     debugBucketCountBuffer.unmap();
-        // }
-        // frameCount++;
     }
 
     // Resize canvas resolution when screen resized yada yada yada
@@ -394,20 +356,16 @@ async function main() {
     let pointerHeld = 0;
 
     canvas.addEventListener("pointermove", () => {
-        // Rescale to -1 to +1, the scaling used by the vertex shaders
-        pointerX = (2 * event.clientX / canvas.width) -1;
-        pointerY = -((2* event.clientY / canvas.height)-1);
+        // Rescale to -1 to +1, the scaling used by the compute/vertex shaders
+        pointerX = (2 * event.clientX / canvas.width) - 1;
+        pointerY = -((2 * event.clientY / canvas.height) - 1);
     });
-
     canvas.addEventListener('pointerdown', () => { pointerHeld = 1; });
-
     canvas.addEventListener('pointerup', () => { pointerHeld = 0; });
     canvas.addEventListener('pointeleave', () => { pointerHeld = 0; });
     canvas.addEventListener('pointercancel', () => { pointerHeld = 0; });
 
     function frame(timestamp) {
-        // mess with the uniforms to see them working
-        // they get written to the buffer
         uniformData[0] = pointerX;
         uniformData[1] = pointerY;
         uniformData[2] = pointerHeld;

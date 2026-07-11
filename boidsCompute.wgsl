@@ -27,13 +27,9 @@ override speedUp = 1.01; // if below minSpeed, accelerate by speedUP
 override pointerRadius = .2;
 override pointerPush = .002;
 
-
-
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
 
-// BUCKET PLANNING
-// TODO: Make sure the bucketRows and cols properly holds the sight distance.
 override bucketRows : u32;
 override bucketCols : u32;
 
@@ -52,7 +48,7 @@ struct Bucket {
 
 // Step 2: CountBuckets
 
-// TODO: Right workgroup size?
+// TODO: Resize workgroup
 @compute @workgroup_size(1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
     _ = uniforms; // dummy
     _ = bucketedIds[0];
@@ -75,8 +71,6 @@ fn bucketCoordToIdx(rowCol : vec2u) -> u32 {
 fn bucketIdx(position : vec2f) -> u32 {
     return bucketCoordToIdx(bucketCoord(position));
 }
-
-
 
 // Can only be done single threaded???
 @compute @workgroup_size(1) fn bucketOffsets() {
@@ -153,57 +147,32 @@ fn bucketIdx(position : vec2f) -> u32 {
         let otherBucketCoordi = vec2i(myBucketCoord) + bucketDeltas[d];
         if(otherBucketCoordi.x < 0 || otherBucketCoordi.y < 0) {continue;}
         let otherBucketCoord = vec2u(otherBucketCoordi);
-        if(otherBucketCoord.x >= 0 && otherBucketCoord.x < bucketRows &&
-           otherBucketCoord.y >= 0 && otherBucketCoord.y < bucketCols ) {
-            let otherBucketCount = atomicLoad(&buckets[bucketCoordToIdx(otherBucketCoord)].count);
-            let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
+        if(otherBucketCoord.x >= bucketRows || otherBucketCoord.y >= bucketCols ) {continue;}
+        let otherBucketCount = atomicLoad(&buckets[bucketCoordToIdx(otherBucketCoord)].count);
+        let otherBucketOffset = buckets[bucketCoordToIdx(otherBucketCoord)].offset;
 
-            for(var i = otherBucketOffset; i < otherBucketOffset+otherBucketCount; i++) {
-                if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
-                let other = boids[bucketedIds[i]];
-                let delta = me.position - other.position;
+        for(var i = otherBucketOffset; i < otherBucketOffset+otherBucketCount; i++) {
+            if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
+            let other = boids[bucketedIds[i]];
+            let delta = me.position - other.position;
 
-                // Check if within sight radius
-                // Could prob be done faster comparing squared distances
-                let dist = length(delta);
-                if(dist > sightRadius) {continue;}
-                neighborCount++;
+            // Check if within sight radius
+            // Could prob be done faster comparing squared distances
+            let dist = length(delta);
+            if(dist > sightRadius) {continue;}
+            neighborCount++;
 
-                sepVec += ((sightRadius -dist)/dist) * delta;
-                // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
-                avgNeighborVel += other.velocity;
+            sepVec += ((sightRadius -dist)/dist) * delta;
+            // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
+            avgNeighborVel += other.velocity;
 
-                center += other.position;
-            }
+            center += other.position;
+            
         }
     }
-    // let myBucketCount = atomicLoad(&buckets[bucketIdx(me.position)].count);
-    // let myBucketOffset = buckets[bucketIdx(me.position)].offset;
-
-
-    // TODO: bucketing so this isn't n^2
-    //for (var i = 0u; i< boidCount; i++) { // OLD AND LAME
-    // for(var i = myBucketOffset; i < myBucketOffset+myBucketCount; i++) {
-    //     if(myIdx == bucketedIds[i]) {continue;} // don't include self in averages
-    //     let other = boids[bucketedIds[i]];
-    //     let delta = me.position - other.position;
-
-    //     // Check if within sight radius
-    //     // Could prob be done faster comparing squared distances
-    //     let dist = length(delta);
-    //     if(dist > sightRadius) {continue;}
-    //     neighborCount++;
-
-    //     sepVec += ((sightRadius -dist)/dist) * delta;
-    //     // sepVec += delta; // this is more the classic boids way, but has caused problems for me?
-    //     avgNeighborVel += other.velocity;
-
-    //     center += other.position;
-    // }
-
+   
     var newVel = me.velocity;
     
-
     if(neighborCount > 0) {
         newVel += sepVec * sepFactor;
 
@@ -224,7 +193,6 @@ fn bucketIdx(position : vec2f) -> u32 {
 
     if (length(newVel) < minSpeed) {newVel *= speedUp;}
 
-    // TODO: re-enable physics!
     boids[myIdx].velocity = newVel;
     boids[myIdx].position = me.position + newVel;
 
@@ -242,18 +210,4 @@ fn bucketIdx(position : vec2f) -> u32 {
     if(boids[myIdx].position.y < -wall) {
         boids[myIdx].position.y += 2*wall;
     }
-}
-
-
-// old mouse attract shader, not currently used
-@compute @workgroup_size(1) fn updatePositionMouse(@builtin(global_invocation_id) id : vec3u) {
-    // let's us get the invocation id's x.
-    // We're doing 1d workgroups, so only the x is relevant
-    // I THINK this means that we're going to have each... worker? working on a separate element of the array
-    // So maybe we'll end up having 1 per boid too? Idk
-    let i = id.x;
-    var pull = uniforms.pointerPos - boids[i].position;
-    pull /= length(pull);
-    boids[i].velocity = boids[i].velocity + pull/10;
-    boids[i].position += boids[i].velocity/1000;
 }

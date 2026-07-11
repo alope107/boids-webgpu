@@ -37,10 +37,9 @@ struct VertexOutput {
         vec2f(0, .01), 
     );
 
+    // Definitely faster/better ways to do this, but probably not bottleneck rn
     let originalAngle = atan2(cornerOffsets[vertexIdx].y, cornerOffsets[vertexIdx].x);
-    
     let newAngle = originalAngle + atan2(boids[boidIdx].velocity.y, boids[boidIdx].velocity.x);
-
     let rotated = 
         vec2f(length(cornerOffsets[vertexIdx]) * cos(newAngle),
               length(cornerOffsets[vertexIdx]) * sin(newAngle));

@@ -7,5 +7,5 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none;
+  touch-action: none; /* Block gestures so they don't swallow our pointermove events*/
 }

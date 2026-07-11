@@ -20,21 +20,41 @@
     b. Mouse attract / repel? ✅
     c. Different speeds / sizes / shapes?
 
-3.65. More tuning?
+3.65. More tuning? ✅
 
-3.7. Improvements
-    a. Something something workgroups?
+3.7. Improvements ✅
+    a. Something something workgroups? ✅
 
 4. Spatial partitioning - 3 compute shaders!
-    a. Parallel: compute gridLoc for each boid. 
+    a. Parallel: compute gridLoc for each boid.  ✅
         i. Use atomic adds to count #s in each gridLoc
-    b. One worker(?):
+    b. One worker(?): ✅
         i. Compute initial offsets for all gridLocs based off of counts
         ii. Have count for each gridLoc of how many have been placed
         iii. Loop over all boids, placing each in the next open space offset from their gridLoc
-        iv. Can this be done more in parallel?
-    c. Parallel: Each boid will know their own gridLoc offset AND how many boids are there
+        iv. Can this be done more in parallel? ✅
+    c. Parallel: Each boid will know their own gridLoc offset AND how many boids are there ✅
         i. Only loop over that section of the gridLoc (and adjacent (8-way) gridLocs) when calculating boidage
 
+4.5. Cleanup
+    a. All overrides:
+        i. In JS
+        ii. In query params
+    b. More consistent naming
+    c. Decomposed functions where appropo
+    
+4.7. Bind group layouts
+    a. Share where appropriate
+    b. Possible to get rid of the ugly _ =?
+
+
 5. More optimizations?
-    a. Better use of rotation matrices, distances, pointers(?) 
+    a. Better use of rotation matrices, distances, pointers(?)
+    b. Clear bucket counts in shader
+    c. Bailout if too crowded
+    d. Fix "too many workgroup threads"
+    e. Remove some atomicity
+
+6. Quadtrees????
+
+7. Evolution~
