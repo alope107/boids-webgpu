@@ -1,4 +1,5 @@
 import { configFromQueryParams } from "./config.js";
+import loadFiles from "./loadFiles.js";
 
 async function main(config) {
     // Ensure that buckets are smaller than the sightRadius
@@ -19,8 +20,7 @@ async function main(config) {
     });
     const device = await adapter?.requestDevice();
     if(!device) {
-        console.error("No WebGPU compatible device found");
-        return;
+        throw new Error("No WebGPU compatible device found");
     }
 
     // get HTML element to render to
@@ -34,19 +34,7 @@ async function main(config) {
         format: presentationFormat
     });
 
-    // load shaders from wgsl files
-    const [computeCodeResp, renderCodeResp] = await Promise.all([
-        fetch("./boidsCompute.wgsl"),
-        fetch("./boidsRender.wgsl")
-    ]);
-    if(!computeCodeResp.ok || !renderCodeResp.ok) {
-        console.error("failed to load shader code");
-        return;
-    }
-    const [computeShaderCode, renderShaderCode] = await Promise.all([
-        computeCodeResp.text(),
-        renderCodeResp.text()
-    ]);
+    const [computeShaderCode, renderShaderCode] = await loadFiles("./boidsCompute.wgsl", "./boidsRender.wgsl");
 
     const computeModule = device.createShaderModule({
         label: "compute boid values shader",
