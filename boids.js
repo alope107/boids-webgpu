@@ -272,7 +272,8 @@ async function main(config) {
         const bucketCountPass = encoder.beginComputePass();
         bucketCountPass.setPipeline(bucketCountsPipeline);
         bucketCountPass.setBindGroup(0, bucketCountBindGroup);
-        bucketCountPass.dispatchWorkgroups(config.boidCount);
+        const bucketCountWorkgroupSize = [8, 8, 1];
+        bucketCountPass.dispatchWorkgroups(Math.ceil(config.boidCount/(bucketCountWorkgroupSize[0]*bucketCountWorkgroupSize[1]*bucketCountWorkgroupSize[2])));
         bucketCountPass.end();
 
         ////////////////////////////

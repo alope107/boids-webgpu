@@ -43,14 +43,11 @@ struct Bucket {
 
 
 // // TODO: explore other clearing options or right workgroup sizes
-
 // Step 1: Copy in empty buckets from CPU (can switch to actual GPU pass if needed, but this should be quite small)
 // CURRENTLY DONE IN JS
 
-// Step 2: CountBuckets
 
-// TODO: Resize workgroup
-@compute @workgroup_size(1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
+@compute @workgroup_size(8, 8, 1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
     _ = uniforms; // dummy
     _ = bucketedIds[0];
     if(id >= arrayLength(&boids)) { return; }
