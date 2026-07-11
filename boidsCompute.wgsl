@@ -98,8 +98,14 @@ fn bucketIdx(position : vec2f) -> u32 {
     }
 }
 
+// Can we make it so that workers are working on the same buckets...
+// Would line up a lot of the loops!
 @compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
-    let myIdx = id;
+    // Boids grouped by bucket! This does noticeably improve performance!
+    // But due to the cheating non-ping-pong update this introduces a directional bias...
+    // Keep this improvement, but swtich to ping pong?
+    let myIdx = bucketedIds[id]; 
+    //let myIdx = id;
     let boidCount = arrayLength(&boids);
     // If we have more threads than boids, the extra threads don't need to do anything
     if(myIdx >= boidCount) { return; }
@@ -196,4 +202,6 @@ fn bucketIdx(position : vec2f) -> u32 {
     if(boids[myIdx].position.y < -wall) {
         boids[myIdx].position.y += 2*wall;
     }
+
+    
 }

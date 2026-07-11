@@ -150,7 +150,15 @@ async function main(config) {
         size: boidValues.byteLength,
         usage: GPUBufferUsage.STORAGE |
                GPUBufferUsage.COPY_DST |
+               GPUBufferUsage.COPY_SRC | // Just needed for debuggling
                GPUBufferUsage.VERTEX
+    });
+
+    const debugBoidBuffer = device.createBuffer({
+        label: "debug boid buffer",
+        size: boidValues.byteLength,
+        usage: 
+               GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
     });
 
     // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
@@ -249,6 +257,7 @@ async function main(config) {
     device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
 
 
+    let fc =0;
     // to be called every frame
     async function computeAndRender() {
         // Will hold all of the commands to be submitted to the GPU
@@ -285,6 +294,8 @@ async function main(config) {
         computePhysicsPass.setPipeline(physicsPipeline);
         computePhysicsPass.setBindGroup(0, physicsBindGroup);
         computePhysicsPass.dispatchWorkgroups(dispatchCount(config.boidCount, [8, 8, 1]));
+        // Have I been dispatching 1d still?
+        // computePhysicsPass.dispatchWorkgroups(Math.max(1, config.boidCount /64), Math.max(1, config.boidCount /64), 1);
         computePhysicsPass.end();
 
         ///////////////////////////
@@ -299,6 +310,9 @@ async function main(config) {
         renderPass.setBindGroup(0, renderBindGroup);
         renderPass.draw(3, config.boidCount); // 3 vertices per boid
         renderPass.end();
+
+        //TODO: remove when done debugging
+        //encoder.copyBufferToBuffer(boidBuffer, 0, debugBoidBuffer, 0, boidBuffer.size);
 
         const commandBuffer = encoder.finish();
 
@@ -334,16 +348,29 @@ async function main(config) {
     canvas.addEventListener('pointeleave', () => { pointerHeld = 0; });
     canvas.addEventListener('pointercancel', () => { pointerHeld = 0; });
 
-    function frame(timestamp) {
+    //fc= 0;
+    async function frame(timestamp) {
         uniformData[0] = pointerX;
         uniformData[1] = pointerY;
         uniformData[2] = pointerHeld;
         uniformData[3] = timestamp / 1000;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+        
+
 
         computeAndRender();
+
+        // await debugBoidBuffer.mapAsync(GPUMapMode.READ);
+        // const result = Array.from(new Float32Array(debugBoidBuffer.getMappedRange()));
+        // console.log('result', result);
+            
+        // debugBoidBuffer.unmap();
+
+        // if(fc>100) return;
+        // fc++
         
         requestAnimationFrame(frame);
+        
     }
     requestAnimationFrame(frame);
 }
