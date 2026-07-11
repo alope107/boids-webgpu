@@ -177,31 +177,24 @@ async function main(config) {
     // TODO: Unify these bind groups!
     const bucketCountBindGroup = device.createBindGroup({
         label: "compute bind group for bucketCount",
-        layout: bucketCountsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
-        entries: [
-            { binding: 0, resource: uniformBuffer },
+        layout: bucketCountsPipeline.getBindGroupLayout(0), 
             { binding: 1, resource: boidBuffer },
             { binding: 2, resource: bucketBuffer },
-            { binding: 3, resource: bucketedIdsBuffer },
         ]
     });
 
     const bucketOffsetBindGroup = device.createBindGroup({
         label: "compute bind group for bucketOffset",
-        layout: bucketOffsetsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        layout: bucketOffsetsPipeline.getBindGroupLayout(0),
         entries: [
-            { binding: 0, resource: uniformBuffer },
-            { binding: 1, resource: boidBuffer },
             { binding: 2, resource: bucketBuffer },
-            { binding: 3, resource: bucketedIdsBuffer },
         ]
     });
 
     const bucketedIdsBindGroup = device.createBindGroup({
-        label: "compute bind group for bucketOffset",
-        layout: bucketedIdsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        label: "compute bind group for bucketedIds",
+        layout: bucketedIdsPipeline.getBindGroupLayout(0),
         entries: [
-            { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
             { binding: 2, resource: bucketBuffer },
             { binding: 3, resource: bucketedIdsBuffer },
@@ -210,7 +203,7 @@ async function main(config) {
 
     const physicsBindGroup = device.createBindGroup({
         label: "compute bind group for physics",
-        layout: physicsPipeline.getBindGroupLayout(0), // when pipeline layout is not auto maybe this will have to change?
+        layout: physicsPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
             { binding: 1, resource: boidBuffer },
@@ -221,7 +214,7 @@ async function main(config) {
 
     // Bind group for the vertex and fragment shaders
     const renderBindGroup = device.createBindGroup({
-        label: "render bind group for uniforms and ping",
+        label: "render bind group",
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: uniformBuffer },
