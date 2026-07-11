@@ -1,13 +1,29 @@
 async function main() {
     // Tunables!
-    const sightRadius = .04;
-    const wall = 1.05;
+    let computeOverrides = {
+        sightRadius : .04,
+        wall : 1.05,
+        sepFactor : .01,
+        alignFactor : .5,
+        cohesionFactor : .001,
+        edgeFactor : .0001,
+        minSpeed : .010,
+        speedUp : 1.01, // if below minSpeed, accelerate by speedUp
+        pointerRadius : .2,
+        pointerPush : .002,
+    };
 
     // Ensure that buckets are smaller than the sightRadius
     // (field spans from -wall to wall (length of 2*wall))
-    const fieldSideLength = 2 * wall;
-    const bucketRows = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
-    const bucketCols = Math.max(Math.ceil(fieldSideLength/sightRadius)-1, 1);
+    const fieldSideLength = 2 * computeOverrides.wall;
+    const bucketRows = Math.max(Math.ceil(fieldSideLength/computeOverrides.sightRadius)-1, 1);
+    const bucketCols = Math.max(Math.ceil(fieldSideLength/computeOverrides.sightRadius)-1, 1);
+
+    computeOverrides = {
+        ...computeOverrides,
+        bucketRows,
+        bucketCols
+    };
 
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter();
@@ -60,12 +76,7 @@ async function main() {
         compute: {
             module: computeModule,
             entryPoint: "countBuckets", // Counts how many boids in each bucket
-            constants: { // TODO: common constants, and all
-                sightRadius: sightRadius,
-                wall: wall,
-                bucketRows: bucketRows,
-                bucketCols: bucketCols
-            }
+            constants: computeOverrides
         },
     });
     const bucketOffsetsPipeline = device.createComputePipeline({
@@ -74,12 +85,7 @@ async function main() {
         compute: {
             module: computeModule,
             entryPoint: "bucketOffsets", // Calculate where in the ids array each bucket will start/end
-            constants: {
-                sightRadius: sightRadius,
-                wall: wall,
-                bucketRows: bucketRows,
-                bucketCols: bucketCols
-            }
+            constants: computeOverrides
         },
     });
     const bucketedIdsPipeline = device.createComputePipeline({
@@ -88,12 +94,7 @@ async function main() {
         compute: {
             module: computeModule,
             entryPoint: "bucketBoids", // place boid ids into buckets
-            constants: {
-                sightRadius: sightRadius,
-                wall: wall,
-                bucketRows: bucketRows,
-                bucketCols: bucketCols
-            }
+            constants: computeOverrides
         },
     });
     const physicsPipeline = device.createComputePipeline({
@@ -102,12 +103,7 @@ async function main() {
         compute: {
             module: computeModule,
             entryPoint: "updatePosition",
-            constants: {
-                sightRadius: sightRadius,
-                wall: wall,
-                bucketRows: bucketRows,
-                bucketCols: bucketCols
-            }
+            constants: computeOverrides
         },
     });
     const renderPipeline = device.createRenderPipeline({
