@@ -36,8 +36,10 @@ struct VertexOutput {
 
     let newPos = boids[boidIdx].position + rotated;
 
+    let transformedPosition = (newPos + uniforms.translate) * uniforms.zoom;
+
     return VertexOutput(
-        vec4f(newPos, 0., 1.),
+        vec4f(transformedPosition, 0., 1.),
         boids[boidIdx].color // use the color o' the boid
     );
 }

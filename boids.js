@@ -101,13 +101,15 @@ async function main(config) {
     });
 
 
-// Corresponds to the uniforms typed array in the JS
 // struct Uniforms {
-//     mousePos : vec2f, // 8 bytes
-//     time : f32 // 4 bytes
-//     //pad 4 bytes
-// } // total: 16 bytes (4 floats)
-    const uniformFloatCount = 4;
+//     pointerPos : vec2f, // 8 bytes
+//     pointerHeld : u32, // 4 bytes
+//     time : f32,  // 4 bytes
+//     translate : vec2f, // 8 bytes
+//     zoom : f32  // 4 bytes
+//     // pad 4 bytes
+// } // total: 32 bytes
+    const uniformFloatCount = 8;
     const uniformData = new Float32Array(uniformFloatCount);
 
     const uniformBuffer = device.createBuffer({
@@ -336,6 +338,8 @@ async function main(config) {
     let pointerX = 0;
     let pointerY = 0;
     let pointerHeld = 0;
+    let translate = [0, 0];
+    let zoom = 1.;
 
     canvas.addEventListener("pointermove", () => {
         // Rescale to -1 to +1, the scaling used by the compute/vertex shaders
@@ -347,12 +351,26 @@ async function main(config) {
     canvas.addEventListener('pointeleave', () => { pointerHeld = 0; });
     canvas.addEventListener('pointercancel', () => { pointerHeld = 0; });
 
+    window.addEventListener("keydown", (e) => {
+        if(e.key === "x") zoom += .02;
+        if(e.key === "z") zoom -= .02;
+
+        if(e.key === "w") translate[1] -= .02;
+        if(e.key === "a") translate[0] += .02;
+        if(e.key === "s") translate[1] += .02;
+        if(e.key === "d") translate[0] -= .02;
+    });
+
+
     //fc= 0;
     async function frame(timestamp) {
         uniformData[0] = pointerX;
         uniformData[1] = pointerY;
         uniformData[2] = pointerHeld;
         uniformData[3] = timestamp / 1000;
+        uniformData[4] = translate[0];
+        uniformData[5] = translate[1];
+        uniformData[6] = zoom;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
         
 

@@ -21,6 +21,9 @@ export const UniformsStruct = /* wgsl */ `
 struct Uniforms {
     pointerPos : vec2f, // 8 bytes
     pointerHeld : u32, // 4 bytes
-    time : f32 // 4 bytes
-} // total: 16 bytes
+    time : f32,  // 4 bytes
+    translate : vec2f, // 8 bytes
+    zoom : f32  // 4 bytes
+    // pad 4 bytes
+} // total: 32 bytes
 `;
