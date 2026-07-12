@@ -38,22 +38,30 @@
 
 4.5. Cleanup
     a. All overrides:
-        i. In JS
-        ii. In query params
+        i. In JS ✅
+        ii. In query params ✅
     b. More consistent naming
     c. Decomposed functions where appropo
     
-4.7. Bind group layouts
-    a. Share where appropriate
-    b. Possible to get rid of the ugly _ =?
+4.7. Bind group layouts ✅
+    a. Share where appropriate ✅ (not appropriate)
+    b. Possible to get rid of the ugly _ =? ✅
 
 
 5. More optimizations?
     a. Better use of rotation matrices, distances, pointers(?)
-    b. Clear bucket counts in shader
+    b. Clear bucket counts in shader ✅
     c. Bailout if too crowded
-    d. Fix "too many workgroup threads"
-    e. Remove some atomicity
+    d. Fix "too many workgroup threads" ✅
+    e. Remove some atomicity ✅
+
+5.3 Ping pong
+    a. Reolve directional bias when grouping by bucket
+
+5.5. Understand multidimensional dispatch
+    a. Can be used for better bucket coordination?
+    b. Are there disappearing boids???
+    c. Boid neutrino bug???
 
 6. Quadtrees????
 

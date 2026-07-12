@@ -26,11 +26,6 @@ override bucketCols : u32;
 @group(0) @binding(3) var<storage, read_write> bucketedIds : array<u32>;
 
 
-// // TODO: explore other clearing options or right workgroup sizes
-// Step 1: Copy in empty buckets from CPU (can switch to actual GPU pass if needed, but this should be quite small)
-// CURRENTLY DONE IN JS
-
-
 @compute @workgroup_size(8, 8, 1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
     if(id >= arrayLength(&boids)) { return; }
     let bucketId = bucketIdx(boids[id].position);
