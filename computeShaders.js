@@ -1,3 +1,11 @@
+import { BoidStruct, BucketStruct, UniformsStruct } from "./structs.js";
+
+export const computeShaderCode = /* wgsl */`
+// Import structs
+${BoidStruct}
+${BucketStruct}
+${UniformsStruct}
+
 override sightRadius : f32; 
 override protectedRadius : f32;
 override sepFactor : f32;
@@ -11,31 +19,6 @@ override pointerRadius : f32;
 override pointerPush : f32;
 override bucketRows : u32;
 override bucketCols : u32;
-
-// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-// CHANGE IT IN THE OTHER SHADER TOO
-struct Boid {
-    position: vec2f, // 8 bytes
-    velocity: vec2f, // 8 bytes
-    color:    vec4f, // 16 bytes
-} // Total 32 bytes
-
-// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-// CHANGE IT IN THE OTHER SHADER TOO
-// Corresponds to the uniforms typed array in the JS
-struct Uniforms {
-    pointerPos : vec2f, // 8 bytes
-    pointerHeld : u32, // 4 bytes
-    time : f32 // 4 bytes
-} // total: 16 bytes
-
-// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-struct Bucket {
-    atomicCount : atomic<u32>, // How many boids are in this bucket? (atomic as it's collab built)
-    count: u32, // non-atomic for reading
-    offset : u32 // How many boids are before this bucket?
-} // 12 bytes
-
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read_write> boids : array<Boid>;
@@ -104,6 +87,8 @@ fn bucketIdx(position : vec2f) -> u32 {
     // Boids grouped by bucket! This does noticeably improve performance!
     // But due to the cheating non-ping-pong update this introduces a directional bias...
     // Keep this improvement, but swtich to ping pong?
+
+    // Also something VERY weird is going on when we try to do higher dimensional workgroups with this
     let myIdx = bucketedIds[id]; 
     //let myIdx = id;
     let boidCount = arrayLength(&boids);
@@ -205,3 +190,4 @@ fn bucketIdx(position : vec2f) -> u32 {
 
     
 }
+`;

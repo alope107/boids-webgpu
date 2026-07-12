@@ -1,19 +1,9 @@
-// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-// CHANGE IT IN THE OTHER SHADER TOO
-struct Boid {
-    position: vec2f, // 8 bytes
-    velocity: vec2f, // 8 bytes
-    color:    vec4f, // 16 bytes
-} // Total 32 bytes
+import { BoidStruct, UniformsStruct } from "./structs.js";
 
-// IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-// CHANGE IT IN THE OTHER SHADER TOO
-// Corresponds to the uniforms typed array in the JS
-struct Uniforms {
-    pointerPos : vec2f, // 8 bytes
-    pointerHeld : u32, // 4 bytes
-    time : f32 // 4 bytes
-} // total: 16 bytes
+export const renderShaderCode = /* wgsl */ `
+// import structs
+${BoidStruct}
+${UniformsStruct}
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
@@ -56,3 +46,4 @@ struct VertexOutput {
 @fragment fn boidFragment(fragInput : VertexOutput) -> @location(0) vec4f {
     return fragInput.color;
 }
+`;

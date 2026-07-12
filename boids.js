@@ -1,12 +1,13 @@
 import { configFromQueryParams } from "./config.js";
-import loadFiles from "./loadFiles.js";
+import { computeShaderCode } from "./computeShaders.js";
+import { renderShaderCode } from "./renderShaders.js";
 import dispatchCount from "./workgroups.js";
 
 async function main(config) {
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter({
         powerPreference: 'high-performance', 
-        //requiredFeatures: ['timestamp-query'],
+        //requiredFeatures: ['timestamp-query'], // will re-enable later for profiling
     });
     const device = await adapter?.requestDevice();
     if(!device) {
@@ -23,8 +24,6 @@ async function main(config) {
         device,
         format: presentationFormat
     });
-
-    const [computeShaderCode, renderShaderCode] = await loadFiles("./boidsCompute.wgsl", "./boidsRender.wgsl");
 
     const computeModule = device.createShaderModule({
         label: "compute boid values shader",
