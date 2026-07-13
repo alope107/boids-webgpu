@@ -85,8 +85,8 @@ fn bucketIdx(position : vec2f) -> u32 {
     // Keep this improvement, but swtich to ping pong?
 
     // Also something VERY weird is going on when we try to do higher dimensional workgroups with this
-    let myIdx = bucketedIds[id]; 
-    //let myIdx = id;
+    // let myIdx = bucketedIds[id]; 
+    let myIdx = id;
     let boidCount = arrayLength(&boids);
     // If we have more threads than boids, the extra threads don't need to do anything
     if(myIdx >= boidCount) { return; }
@@ -136,8 +136,18 @@ fn bucketIdx(position : vec2f) -> u32 {
             neighborCount++;
 
 
+            // TODO: branchless
             if (squaredDist < protectedRadius*protectedRadius) {
-                sepVec += delta;
+                
+                // hack for super crowded layouts, see explanation below
+                if(squaredDist < .000001) {
+                    sepVec += delta * 100;
+                } 
+
+                // The classic boids way... But I think if things get too cramped they're all on top of each other!
+                // That's why there's the hack above to push them apart so we don't get them literally exactly on top
+                sepVec += delta; 
+
             }
             avgNeighborVel += other.velocity;
 

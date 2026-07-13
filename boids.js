@@ -4,8 +4,8 @@ import { renderShaderCode } from "./renderShaders.js";
 import dispatchCount from "./workgroups.js";
 
 const DEBUG_OUT = false;
-const DEBUG_OUT_INTERVAL = 1;
-const DEBUG_HALT = 1000;
+const DEBUG_OUT_INTERVAL = 10000;
+const DEBUG_HALT = 100;
 
 async function main(config) {
     // Check webGPU support and get device
