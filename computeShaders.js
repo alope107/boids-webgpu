@@ -1,10 +1,14 @@
 import { BoidStruct, BucketStruct, UniformsStruct } from "./structs.js";
+import { global_invocation_index } from "./linear_indexing.js";
 
 export const computeShaderCode = /* wgsl */`
+
 // Import structs
 ${BoidStruct}
 ${BucketStruct}
 ${UniformsStruct}
+// polyfills
+${global_invocation_index}
 
 override sightRadius : f32; 
 override protectedRadius : f32;
@@ -26,8 +30,30 @@ override bucketCols : u32;
 @group(0) @binding(2) var<storage, read_write> buckets : array<Bucket>;
 @group(0) @binding(3) var<storage, read_write> bucketedIds : array<u32>;
 
+@compute @workgroup_size(8, 8, 1) fn countBuckets(@builtin(workgroup_id) workgroup_id : vec3<u32>,
+    @builtin(local_invocation_index) local_invocation_index: u32,
+    @builtin(num_workgroups) num_workgroups: vec3<u32>) {
+    _ = sightRadius;
+    _ = boids[0];
+    _ = buckets[0].count;
+    _ = protectedRadius;
+    _ = sepFactor;
+    _ = alignFactor;
+    _ = cohesionFactor;
+    _ = edgeFactor;
+    _ = wall;
+    _ = minSpeed;
+    _ = speedUp;
+    _ = pointerRadius;
+    _ = pointerPush;
+    _ = maxSpeed;
+    _ = bucketRows;
+    _ = bucketCols;
+    let id = global_invocation_index(workgroup_id,
+                        local_invocation_index,
+                        num_workgroups,
+                        8*8*1);
 
-@compute @workgroup_size(8, 8, 1) fn countBuckets(@builtin(global_invocation_index) id : u32) {
     if(id >= arrayLength(&boids)) { return; }
     let bucketId = bucketIdx(boids[id].position);
     atomicAdd(&(buckets[bucketId].atomicCount), 1);
@@ -50,6 +76,20 @@ fn bucketIdx(position : vec2f) -> u32 {
 
 // Can only be done single threaded???
 @compute @workgroup_size(1) fn bucketOffsets() {
+    _ = sightRadius;
+    _ = protectedRadius;
+    _ = sepFactor;
+    _ = alignFactor;
+    _ = cohesionFactor;
+    _ = edgeFactor;
+    _ = wall;
+    _ = minSpeed;
+    _ = speedUp;
+    _ = pointerRadius;
+    _ = pointerPush;
+    _ = maxSpeed;
+    _ = bucketRows;
+    _ = bucketCols;
     var offset=0u;
     for(var i = 0u; i < arrayLength(&buckets); i++) {
         buckets[i].offset = offset;
@@ -59,9 +99,29 @@ fn bucketIdx(position : vec2f) -> u32 {
     }
 }
 
-// Should be 1 thread per bucket
-// If workgroup sizes change, should change in JS as well
-@compute @workgroup_size(8, 8, 1) fn bucketBoids(@builtin(global_invocation_index) id : u32) {
+@compute @workgroup_size(8, 8, 1) fn bucketBoids(
+    @builtin(workgroup_id) workgroup_id : vec3<u32>,
+    @builtin(local_invocation_index) local_invocation_index: u32,
+    @builtin(num_workgroups) num_workgroups: vec3<u32>
+) {
+    _ = sightRadius;
+    _ = protectedRadius;
+    _ = sepFactor;
+    _ = alignFactor;
+    _ = cohesionFactor;
+    _ = edgeFactor;
+    _ = wall;
+    _ = minSpeed;
+    _ = speedUp;
+    _ = pointerRadius;
+    _ = pointerPush;
+    _ = maxSpeed;
+    _ = bucketRows;
+    _ = bucketCols;
+    let id = global_invocation_index(workgroup_id,
+                            local_invocation_index,
+                            num_workgroups,
+                            8*8*1);// TODO: struct fill in workgroup sizes?
     if(id > arrayLength(&buckets)) {return;}
 
     var baseOffset = buckets[id].offset;
@@ -79,7 +139,29 @@ fn bucketIdx(position : vec2f) -> u32 {
 
 // Can we make it so that workers are working on the same buckets...
 // Would line up a lot of the loops!
-@compute @workgroup_size(8, 8, 1) fn updatePosition(@builtin(global_invocation_index) id : u32) {
+@compute @workgroup_size(8, 8, 1) fn updatePosition(
+    @builtin(workgroup_id) workgroup_id : vec3<u32>,
+    @builtin(local_invocation_index) local_invocation_index: u32,
+    @builtin(num_workgroups) num_workgroups: vec3<u32>
+) {
+    _ = sightRadius;
+    _ = protectedRadius;
+    _ = sepFactor;
+    _ = alignFactor;
+    _ = cohesionFactor;
+    _ = edgeFactor;
+    _ = wall;
+    _ = minSpeed;
+    _ = speedUp;
+    _ = pointerRadius;
+    _ = pointerPush;
+    _ = maxSpeed;
+    _ = bucketRows;
+    _ = bucketCols;
+    let id = global_invocation_index(workgroup_id,
+                            local_invocation_index,
+                            num_workgroups,
+                            8*8*1);// TODO: struct fill in workgroup sizes?
     // Boids grouped by bucket! This does noticeably improve performance!
     // But due to the cheating non-ping-pong update this introduces a directional bias...
     // Keep this improvement, but swtich to ping pong?

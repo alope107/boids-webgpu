@@ -8,9 +8,10 @@ const DEBUG_OUT_INTERVAL = 10000;
 const DEBUG_HALT = 100;
 
 async function main(config) {
+    console.log("hup");
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter({
-        powerPreference: 'high-performance', 
+        // powerPreference: 'high-performance', 
         //requiredFeatures: ['timestamp-query'], // will re-enable later for profiling
     });
     const device = await adapter?.requestDevice();
@@ -174,12 +175,12 @@ async function main(config) {
     }
 
 
-    // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
-    // struct Bucket {
-    //     atomicCount : atomic<u32>, // How many boids are in this bucket? (atomic as it's collab built)
-    //     count: u32, // non-atomic for reading
-    //     offset : u32 // How many boids are before this bucket?
-    // } // 12 bytes
+//     // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
+//     // struct Bucket {
+//     //     atomicCount : atomic<u32>, // How many boids are in this bucket? (atomic as it's collab built)
+//     //     count: u32, // non-atomic for reading
+//     //     offset : u32 // How many boids are before this bucket?
+//     // } // 12 bytes
 
     const bucketStructSize = 12;
     const u32Count = bucketStructSize / 4;
@@ -285,7 +286,7 @@ async function main(config) {
         bucketCountPass.dispatchWorkgroups(dispatchCount(config.boidCount, [8, 8, 1]));
         bucketCountPass.end();
 
-        ////////////////////////////
+//         ////////////////////////////
 
         const bucketOffsetPass = encoder.beginComputePass();
         bucketOffsetPass.setPipeline(bucketOffsetsPipeline);
@@ -293,7 +294,7 @@ async function main(config) {
         bucketOffsetPass.dispatchWorkgroups(1); // I think this has to be done single threaded :(
         bucketOffsetPass.end();
 
-        ///////////////////////////
+//         ///////////////////////////
 
         const bucketedIdsPass = encoder.beginComputePass();
         bucketedIdsPass.setPipeline(bucketedIdsPipeline);
@@ -301,7 +302,7 @@ async function main(config) {
         bucketedIdsPass.dispatchWorkgroups(dispatchCount(bucketCount, [8, 8, 1])); 
         bucketedIdsPass.end();
 
-        ///////////////////////////
+//         ///////////////////////////
 
         // in this pass we will encode all of the suff we set up for the physics
         const computePhysicsPass = encoder.beginComputePass();
@@ -312,7 +313,7 @@ async function main(config) {
         // computePhysicsPass.dispatchWorkgroups(Math.max(1, config.boidCount /64), Math.max(1, config.boidCount /64), 1);
         computePhysicsPass.end();
 
-        ///////////////////////////
+//         ///////////////////////////
 
         // Canvas has a new texture each frame, so we need to make sure we're drawing
         // to the one for the current frame.
