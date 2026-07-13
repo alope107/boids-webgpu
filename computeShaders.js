@@ -17,6 +17,7 @@ override minSpeed : f32;
 override speedUp : f32; // if below minSpeed, accelerate by speedUP
 override pointerRadius : f32;
 override pointerPush : f32;
+override maxSpeed : f32;
 override bucketRows : u32;
 override bucketCols : u32;
 
@@ -164,12 +165,16 @@ fn bucketIdx(position : vec2f) -> u32 {
         }
     }
 
-    if (length(newVel) < minSpeed) {newVel *= speedUp;}
+    // TODO: Selects!
+    let curSpeed = length(newVel);
+    if (curSpeed < minSpeed) {newVel *= speedUp;}
+    if(curSpeed > maxSpeed) {newVel /= curSpeed; }
 
     boids[myIdx].velocity = newVel;
     boids[myIdx].position = me.position + newVel;
 
     // Wrap (candidate for separate function? If so, pass boids pointer)
+    // TODO: Selects!
     if(boids[myIdx].position.x > wall) {
         boids[myIdx].position.x -= 2*wall;
     }

@@ -3,6 +3,10 @@ import { computeShaderCode } from "./computeShaders.js";
 import { renderShaderCode } from "./renderShaders.js";
 import dispatchCount from "./workgroups.js";
 
+const DEBUG_OUT = false;
+const DEBUG_OUT_INTERVAL = 1;
+const DEBUG_HALT = 1000;
+
 async function main(config) {
     // Check webGPU support and get device
     const adapter = await navigator.gpu?.requestAdapter({
@@ -151,16 +155,20 @@ async function main(config) {
         size: boidValues.byteLength,
         usage: GPUBufferUsage.STORAGE |
                GPUBufferUsage.COPY_DST |
-               GPUBufferUsage.COPY_SRC | // Just needed for debuggling
+               GPUBufferUsage.COPY_SRC | // Just needed for debuggling. Good idea to remove otherwise? Or does it not hurt?
                GPUBufferUsage.VERTEX
     });
 
-    const debugBoidBuffer = device.createBuffer({
-        label: "debug boid buffer",
-        size: boidValues.byteLength,
-        usage: 
-               GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-    });
+    let debugBoidBuffer;
+    if(DEBUG_OUT) {
+        debugBoidBuffer = device.createBuffer({
+            label: "debug boid buffer",
+            size: boidValues.byteLength,
+            usage: 
+                GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+        });
+    }
+
 
     // IF THIS STRUCT CHANGES, THE JS TYPED ARRAYS NEED TO CHANGE TOO
     // struct Bucket {
@@ -257,8 +265,9 @@ async function main(config) {
     bucketValues = new Uint32Array(bucketCount*u32Count);
     device.queue.writeBuffer(bucketBuffer, 0, bucketValues);
 
+    // only used for debug
+    let fc = 0;
 
-    let fc =0;
     // to be called every frame
     async function computeAndRender() {
         // Will hold all of the commands to be submitted to the GPU
@@ -312,8 +321,8 @@ async function main(config) {
         renderPass.draw(3, config.boidCount); // 3 vertices per boid
         renderPass.end();
 
-        //TODO: remove when done debugging
-        //encoder.copyBufferToBuffer(boidBuffer, 0, debugBoidBuffer, 0, boidBuffer.size);
+        
+        if(DEBUG_OUT) encoder.copyBufferToBuffer(boidBuffer, 0, debugBoidBuffer, 0, boidBuffer.size);
 
         const commandBuffer = encoder.finish();
 
@@ -362,7 +371,8 @@ async function main(config) {
     });
 
 
-    //fc= 0;
+    
+
     async function frame(timestamp) {
         uniformData[0] = pointerX;
         uniformData[1] = pointerY;
@@ -377,14 +387,18 @@ async function main(config) {
 
         computeAndRender();
 
-        // await debugBoidBuffer.mapAsync(GPUMapMode.READ);
-        // const result = Array.from(new Float32Array(debugBoidBuffer.getMappedRange()));
-        // console.log('result', result);
+        if (DEBUG_OUT) {
             
-        // debugBoidBuffer.unmap();
-
-        // if(fc>100) return;
-        // fc++
+            if(fc % DEBUG_OUT_INTERVAL == 0) {
+                await debugBoidBuffer.mapAsync(GPUMapMode.READ);
+                const result = Array.from(new Float32Array(debugBoidBuffer.getMappedRange()));
+                console.log('result', result);
+                    
+                debugBoidBuffer.unmap();
+            }
+            fc++;
+            if(fc == DEBUG_HALT) return;
+        }
         
         requestAnimationFrame(frame);
         

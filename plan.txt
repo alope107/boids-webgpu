@@ -55,14 +55,14 @@
     d. Fix "too many workgroup threads" ✅
     e. Remove some atomicity ✅
 
-5.1 Zoom + pan
+5.1 Zoom + pan ✅
 
 5.3 Ping pong
     a. Reolve directional bias when grouping by bucket
 
 5.5. Understand multidimensional dispatch
     a. Can be used for better bucket coordination?
-    b. Are there disappearing boids???
+    b. Are there disappearing boids??? ✅ YES. Max speed solves this
     c. Boid neutrino bug???
 
 6. Quadtrees????

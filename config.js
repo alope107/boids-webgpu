@@ -21,7 +21,8 @@ const defaults = {
         minSpeed : .010,
         speedUp : 1.01, // if below minSpeed, accelerate by speedUp
         pointerRadius : .2,
-        pointerPush : .002
+        pointerPush : .002,
+        maxSpeed : 1.
     }
 };
 
