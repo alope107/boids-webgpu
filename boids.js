@@ -18,6 +18,10 @@ async function main(config) {
         throw new Error("No WebGPU compatible device found");
     }
 
+    device.addEventListener('uncapturederror', (event) => {
+        console.error('WebGPU uncaptured error:', event.error.message);
+    });
+
     // get HTML element to render to
     const canvas = document.getElementById("renderTarget");
 
